@@ -6,18 +6,18 @@ use Spatie\Activitylog\LogOptions;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-class MyParcelShippingMethodService extends Model
+class MyParcelShippingMethod extends Model
 {
     use LogsActivity;
 
     protected static $logFillable = true;
 
-    protected $table = 'dashed__myparcel_shipping_method_services';
+    protected $table = 'dashed__my_parcel_shipping_methods';
 
     protected $fillable = [
-        'myparcel_shipping_method_id',
         'name',
         'value',
+        'site_id',
         'enabled',
     ];
 
@@ -30,13 +30,8 @@ class MyParcelShippingMethodService extends Model
         return LogOptions::defaults();
     }
 
-    public function myparcelShippingMethod()
+    public function myParcelShippingMethodServices()
     {
-        return $this->belongsTo(MyParcelShippingMethod::class);
-    }
-
-    public function MyParcelShippingMethodServiceOptions()
-    {
-        return $this->hasMany(MyParcelShippingMethodServiceOption::class);
+        return $this->hasMany(MyParcelShippingMethodService::class);
     }
 }

@@ -11,15 +11,15 @@ class MyParcelController extends FrontendController
 {
     public function downloadLabels()
     {
-        $myparcelOrders = MyParcelOrder::where('label_printed', 0)->get();
+        $myParcelOrders = MyParcelOrder::where('label_printed', 0)->get();
 
-        $response = MyParcel::getLabelsFromShipments($myparcelOrders->pluck('shipment_id')->toArray());
+        $response = MyParcel::getLabelsFromShipments($myParcelOrders->pluck('shipment_id')->toArray());
         if (isset($response['labels'])) {
             $fileName = '/dashed/myparcel/labels/labels-' . time() . '.pdf';
             Storage::disk('dashed')->put($fileName, base64_decode($response['labels']));
-            foreach ($myparcelOrders as $myparcelOrder) {
-                $myparcelOrder->label_printed = 1;
-                $myparcelOrder->save();
+            foreach ($myParcelOrders as $myParcelOrder) {
+                $myParcelOrder->label_printed = 1;
+                $myParcelOrder->save();
             }
 
             return Storage::disk('dashed')->download($fileName);

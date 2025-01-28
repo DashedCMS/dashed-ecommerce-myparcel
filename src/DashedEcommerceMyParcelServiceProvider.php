@@ -18,14 +18,14 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
 
     public function bootingPackage()
     {
-        Livewire::component('show-push-to-myparcel-order', ShowPushToMyParcelOrder::class);
-        Livewire::component('show-myparcel-orders', ShowMyParcelOrders::class);
+        Livewire::component('show-push-to-my-parcel-order', ShowPushToMyParcelOrder::class);
+        Livewire::component('show-my-parcel-orders', ShowMyParcelOrders::class);
 
-        Order::addDynamicRelation('myparcelOrders', function (Order $model) {
+        Order::addDynamicRelation('myParcelOrders', function (Order $model) {
             return $model->hasMany(MyParcelOrder::class);
         });
 
-        if (! app()->runningInConsole()) {
+        if (cms()->isCMSRoute()) {
             if (MyParcelOrder::where('label_printed', 0)->count()) {
                 ecommerce()->buttonActions(
                     'orders',
@@ -67,12 +67,12 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
         ecommerce()->widgets(
             'orders',
             array_merge(ecommerce()->widgets('orders'), [
-                'show-push-to-myparcel-order' => [
-                    'name' => 'show-push-to-myparcel-order',
+                'show-push-to-my-parcel-order' => [
+                    'name' => 'show-push-to-my-parcel-order',
                     'width' => 'sidebar',
                 ],
-                'show-myparcel-orders' => [
-                    'name' => 'show-myparcel-orders',
+                'show-my-parcel-orders' => [
+                    'name' => 'show-my-parcel-orders',
                     'width' => 'sidebar',
                 ],
             ])

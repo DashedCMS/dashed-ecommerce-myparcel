@@ -13,7 +13,7 @@ class MyParcelOrder extends Model
 
     protected static $logFillable = true;
 
-    protected $table = 'dashed__order_myparcel';
+    protected $table = 'dashed__order_my_parcel';
 
     protected $fillable = [
         'order_id',

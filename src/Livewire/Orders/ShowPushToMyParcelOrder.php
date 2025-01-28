@@ -2,6 +2,7 @@
 
 namespace Dashed\DashedEcommerceMyParcel\Livewire\Orders;
 
+use Dashed\DashedCore\Models\Customsetting;
 use Filament\Forms\Get;
 use Livewire\Component;
 use Filament\Actions\Action;
@@ -23,6 +24,7 @@ use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
 use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
 use Dashed\DashedEcommerceMyParcel\Mail\TrackandTraceMail;
 use Dashed\DashedEcommerceMyParcel\Models\MyParcelShippingMethod;
+use MyParcelNL\Sdk\src\Model\Carrier\CarrierPostNL;
 
 class ShowPushToMyParcelOrder extends Component implements HasForms, HasActions
 {
@@ -49,86 +51,35 @@ class ShowPushToMyParcelOrder extends Component implements HasForms, HasActions
             ->fillForm(function () {
                 $data = [];
 
-                $shippingMethods = MyParcelShippingMethod::where('enabled', 1)->where('site_id', $this->order->site_id)->get();
-                foreach ($shippingMethods as $shippingMethod) {
-                    $services = $shippingMethod->myparcelShippingMethodServices()->where('enabled', 1)->get();
-                    foreach ($services as $service) {
-                        foreach ($service->myparcelShippingMethodServiceOptions as $option) {
-                            $data["shipping_method_service_{$service->id}_option_$option->field"] = $option->default ?: null;
-                        }
-                    }
-                }
+                $data['package_type'] = Customsetting::get('my_parcel_default_package_type', null, 1);
+                $data['delivery_type'] = Customsetting::get('my_parcel_default_delivery_type', null, 2);
+                $data['carrier'] = Customsetting::get('my_parcel_default_carrier', null, CarrierPostNL::class);
 
                 return $data;
             })
             ->form(function () {
-                $shippingMethods = MyParcelShippingMethod::where('enabled', 1)->where('site_id', $this->order->site_id)->get();
-
-                $schema = [];
-                $schema[] = Select::make('shipping_method')
-                    ->label('Kies een verzendmethode')
-                    ->required()
-                    ->reactive()
-                    ->options($shippingMethods->pluck('name', 'value'));
-
-                foreach ($shippingMethods as $shippingMethod) {
-                    $services = $shippingMethod->myparcelShippingMethodServices()->where('enabled', 1)->get();
-                    $schema[] = Select::make('service')
-                        ->label('Kies een service')
+                return [
+                    Select::make("carrier")
+                        ->label('Carrier')
                         ->required()
-                        ->reactive()
-                        ->options($services->pluck('name', 'value'))
-                        ->hidden(fn (Get $get) => $get("shipping_method") != $shippingMethod->value);
-
-                    foreach ($services as $service) {
-                        foreach ($service->myparcelShippingMethodServiceOptions as $option) {
-                            if ($option->type == 'textbox') {
-                                $schema[] = TextInput::make("shipping_method_service_{$service->id}_option_{$option->field}")
-                                    ->label($option->name)
-                                    ->maxLength(255)
-                                    ->required($option->mandatory)
-                                    ->hidden(fn (Get $get) => $get("service") != $service->value);
-                            } elseif ($option->type == 'checkbox') {
-                                $schema[] = Toggle::make("shipping_method_service_{$service->id}_option_{$option->field}")
-                                    ->label($option->name)
-                                    ->required($option->mandatory)
-                                    ->hidden(fn (Get $get) => $get("service") != $service->value);
-                            } elseif ($option->type == 'email') {
-                                $schema[] = TextInput::make("shipping_method_service_{$service->id}_option_{$option->field}")
-                                    ->type('email')
-                                    ->label($option->name)
-                                    ->required($option->mandatory)
-                                    ->email()
-                                    ->maxLength(255)
-                                    ->hidden(fn (Get $get) => $get("service") != $service->value);
-                            } elseif ($option->type == 'date') {
-                                $schema[] = DatePicker::make("shipping_method_service_{$service->id}_option_{$option->field}")
-                                    ->label($option->name)
-                                    ->required($option->mandatory)
-                                    ->hidden(fn (Get $get) => $get("service") != $service->value);
-                            } elseif ($option->type == 'selectbox') {
-                                $choices = [];
-                                foreach ($option->choices as $choice) {
-                                    $choices[$choice['value']] = $choice['text'];
-                                }
-                                $schema[] = Select::make("shipping_method_service_{$service->id}_option_{$option->field}")
-                                    ->label($option->name)
-                                    ->options($choices)
-                                    ->required($option->mandatory)
-                                    ->hidden(fn (Get $get) => $get("service") != $service->value);
-                            } else {
-                                dump('Contacteer Dashed om dit in te bouwen');
-                            }
-                        }
-                    }
-                }
-
-                return $schema;
+                        ->options(MyParcel::getCarriers()),
+                    Select::make("package_type")
+                        ->label('Pakket type')
+                        ->required()
+                        ->options(MyParcel::getPackageTypes())
+                        ->helperText('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen'),
+                    Select::make("delivery_type")
+                        ->label('Verzend type')
+                        ->required()
+                        ->options(MyParcel::getDeliveryTypes())
+                        ->helperText('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen'),
+                ];
             })
             ->action(function ($data) {
                 $this->validate();
 
                 $response = MyParcel::createShipment($this->order, $data);
+                dd($response);
                 if (isset($response['shipment_id'])) {
                     $myparcelOrder = new MyParcelOrder();
                     $myparcelOrder->order_id = $this->order->id;

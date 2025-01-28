@@ -15,6 +15,6 @@ class ShowMyParcelOrders extends Component
 
     public function render()
     {
-        return view('dashed-ecommerce-myparcel::orders.components.show-myparcel-orders');
+        return view('dashed-ecommerce-myparcel::orders.components.show-my-parcel-orders');
     }
 }

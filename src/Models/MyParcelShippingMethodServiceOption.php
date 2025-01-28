@@ -12,10 +12,10 @@ class MyParcelShippingMethodServiceOption extends Model
 
     protected static $logFillable = true;
 
-    protected $table = 'dashed__myparcel_shipping_method_service_options';
+    protected $table = 'dashed__my_parcel_shipping_method_service_options';
 
     protected $fillable = [
-        'myparcel_shipping_method_service_id',
+        'my_parcel_shipping_method_service_id',
         'name',
         'field',
         'type',
@@ -34,7 +34,7 @@ class MyParcelShippingMethodServiceOption extends Model
         return LogOptions::defaults();
     }
 
-    public function myparcelShippingMethodService()
+    public function myParcelShippingMethodService()
     {
         return $this->belongsTo(MyParcelShippingMethodService::class);
     }

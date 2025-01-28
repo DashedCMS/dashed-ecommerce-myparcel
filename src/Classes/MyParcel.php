@@ -2,17 +2,16 @@
 
 namespace Dashed\DashedEcommerceMyParcel\Classes;
 
-use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
 use Exception;
 use Dashed\DashedCore\Classes\Sites;
 use Illuminate\Support\Facades\Http;
 use Dashed\DashedCore\Models\Customsetting;
-use Dashed\DashedEcommerceCore\Models\Order;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierDPD;
 use MyParcelNL\Sdk\src\Helper\MyParcelCollection;
 use MyParcelNL\Sdk\src\Factory\ConsignmentFactory;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierBpost;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierPostNL;
+use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
 
 class MyParcel
 {
@@ -33,7 +32,7 @@ class MyParcel
 
     public static function isConnected($siteId = null)
     {
-        if (!$siteId) {
+        if (! $siteId) {
             $siteId = Sites::getActive();
         }
 
@@ -89,7 +88,7 @@ class MyParcel
             $myParcelOrder->track_and_trace = [
                 [
                     $shipment->getBarcode() => $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode),
-                ]
+                ],
             ];
             $myParcelOrder->save();
 

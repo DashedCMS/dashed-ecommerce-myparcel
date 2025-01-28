@@ -4,22 +4,16 @@ namespace Dashed\DashedEcommerceMyParcel\Livewire\Orders;
 
 use Livewire\Component;
 use Filament\Actions\Action;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Contracts\HasForms;
-use Illuminate\Support\Facades\Storage;
 use Filament\Notifications\Notification;
 use Filament\Actions\Contracts\HasActions;
 use Dashed\DashedCore\Models\Customsetting;
 use Dashed\DashedEcommerceCore\Models\Order;
-use Dashed\DashedEcommerceCore\Models\OrderLog;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Actions\Concerns\InteractsWithActions;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierPostNL;
 use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
-use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
-use Dashed\DashedEcommerceMyParcel\Mail\TrackandTraceMail;
 
 class ShowPushToMyParcelOrder extends Component implements HasForms, HasActions
 {
@@ -76,13 +70,13 @@ class ShowPushToMyParcelOrder extends Component implements HasForms, HasActions
                 $this->validate();
 
                 $myParcelOrder = $this->order->myParcelOrders()->where('label_printed', 0)->first();
-                if (!$myParcelOrder) {
+                if (! $myParcelOrder) {
                     $this->order->myParcelOrders()->create([
                         'carrier' => $data['carrier'],
                         'package_type' => $data['package_type'],
                         'delivery_type' => $data['delivery_type'],
                     ]);
-                }else{
+                } else {
                     $myParcelOrder->update([
                         'carrier' => $data['carrier'],
                         'package_type' => $data['package_type'],

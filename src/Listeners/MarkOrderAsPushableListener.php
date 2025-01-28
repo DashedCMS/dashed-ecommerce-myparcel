@@ -28,7 +28,7 @@ class MarkOrderAsPushableListener
     public function handle(OrderMarkedAsPaidEvent $event)
     {
         if (Customsetting::get('my_parcel_automatically_push_orders', $event->order->site_id)) {
-            if (MyParcel::isConnected($event->order->site_id) && !$event->order->myParcelOrders()->count()) {
+            if (MyParcel::isConnected($event->order->site_id) && ! $event->order->myParcelOrders()->count()) {
                 $packageTypeIds = [];
 
                 foreach ($event->order->orderProducts as $orderProduct) {
@@ -49,7 +49,7 @@ class MarkOrderAsPushableListener
                 $orderLog->tag = 'system.note.created';
                 $orderLog->note = 'Bestelling klaargezet voor MyParcel';
                 $orderLog->save();
-            } elseif (!MyParcel::isConnected($event->order->site_id)) {
+            } elseif (! MyParcel::isConnected($event->order->site_id)) {
                 $orderLog = new OrderLog();
                 $orderLog->order_id = $event->order->id;
                 $orderLog->user_id = null;

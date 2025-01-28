@@ -2,14 +2,14 @@
 
 namespace Dashed\DashedEcommerceMyParcel;
 
-use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
-use Filament\Forms\Components\Select;
-use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Illuminate\Support\Facades\Storage;
 use Spatie\LaravelPackageTools\Package;
+use Filament\Notifications\Notification;
 use Dashed\DashedEcommerceCore\Models\Order;
+use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
 use Dashed\DashedEcommerceMyParcel\Livewire\Orders\ShowMyParcelOrders;
@@ -57,7 +57,7 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
                                     ])
                                     ->success()
                                     ->send();
-                            })
+                            }),
 //                            ->url(url(config('filament.path', 'dashed') . '/myparcel/download-labels'))
 //                            ->openUrlInNewTab(),
                     ])

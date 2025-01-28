@@ -6,12 +6,9 @@ use Dashed\DashedCore\Classes\Sites;
 use Illuminate\Support\Facades\Http;
 use Dashed\DashedCore\Models\Customsetting;
 use Dashed\DashedEcommerceCore\Models\Order;
-use Dashed\DashedEcommerceMyParcel\Models\MyParcelShippingMethod;
-use Dashed\DashedEcommerceMyParcel\Models\MyParcelShippingMethodService;
-use Dashed\DashedEcommerceMyParcel\Models\MyParcelShippingMethodServiceOption;
+use MyParcelNL\Sdk\src\Model\Carrier\CarrierDPD;
 use MyParcelNL\Sdk\src\Factory\ConsignmentFactory;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierBpost;
-use MyParcelNL\Sdk\src\Model\Carrier\CarrierDPD;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierPostNL;
 
 class MyParcel
@@ -33,7 +30,7 @@ class MyParcel
 
     public static function isConnected($siteId = null)
     {
-        if (!$siteId) {
+        if (! $siteId) {
             $siteId = Sites::getActive();
         }
 
@@ -42,9 +39,11 @@ class MyParcel
             ->json();
         if (($response['status'] ?? false) == 'OK') {
             Customsetting::set('my_parcel_connection_error', null, $siteId);
+
             return true;
         } else {
             Customsetting::set('my_parcel_connection_error', $response['message'] ?? 'kan niet connecten', $siteId);
+
             return false;
         }
     }

@@ -1,0 +1,62 @@
+{
+    "name": "dashed/dashed-ecommerce-myparcel",
+    "description": "This is my package dashed-ecommerce-myparcel",
+    "keywords": [
+        "Dashed",
+        "laravel",
+        "dashed-ecommerce-myparcel"
+    ],
+    "homepage": "https://github.com/Dashed-DEV/dashed-ecommerce-myparcel",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Robin van Maasakker",
+            "email": "robin@dashed.nl",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.3|^8.4",
+        "spatie/laravel-package-tools": "^1.16"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.63",
+        "orchestra/testbench": "^9",
+        "pestphp/pest": "^2.35",
+        "pestphp/pest-plugin-laravel": "^2.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Dashed\\DashedEcommerceMyParcel\\": "src",
+            "Dashed\\DashedEcommerceMyParcel\\Database\\Factories\\": "database/factories"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Dashed\\DashedEcommerceMyParcel\\Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "analyse": "vendor/bin/phpstan analyse",
+        "test": "vendor/bin/pest",
+        "test-coverage": "vendor/bin/pest coverage"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Dashed\\DashedEcommerceMyParcel\\DashedEcommerceMyParcelServiceProvider"
+            ],
+            "aliases": {
+                "DashedEcommerceMyParcel": "Dashed\\DashedEcommerceMyParcel\\Facades\\DashedEcommerceMyParcel"
+            }
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

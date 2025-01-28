@@ -2,6 +2,7 @@
 
 namespace Dashed\DashedEcommerceMyParcel\Classes;
 
+use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
 use Exception;
 use Dashed\DashedCore\Classes\Sites;
 use Illuminate\Support\Facades\Http;
@@ -32,7 +33,7 @@ class MyParcel
 
     public static function isConnected($siteId = null)
     {
-        if (! $siteId) {
+        if (!$siteId) {
             $siteId = Sites::getActive();
         }
 
@@ -50,41 +51,50 @@ class MyParcel
         }
     }
 
-    public static function createShipment(Order $order, $formData)
+    public static function createShipments()
     {
-        //        try{
-        $carrier = $formData['carrier'] ?? Customsetting::get('my_parcel_default_carrier', $order->site_id, CarrierPostNL::class);
-        $consigment = (ConsignmentFactory::createByCarrierId(app(app($carrier)::CONSIGNMENT)->getCarrierId()))
-            ->setApiKey(self::apiKey($order->site_id, false))
-            ->setReferenceIdentifier('order-' . $order->id)
-            ->setCountry($order->countryIsoCode)
-            ->setPerson($order->name)
-            ->setFullStreet($order->street . ' ' . $order->house_nr)
-            ->setPostalCode(trim($order->zip_code))
-            ->setCity($order->city)
-            ->setEmail($order->email)
-            ->setPhone($order->phone_number)
-            ->setLabelDescription('Bestelling ' . $order->invoice_id);
+        $consignments = (new MyParcelCollection())
+            ->setUserAgents(['DashedCMS', '2.0']);
 
-        $consigments = (new MyParcelCollection())
+        foreach (MyParcelOrder::where('label_printed', 0)->get() as $myParcelOrder) {
+            try {
+                $consigment = (ConsignmentFactory::createByCarrierId(app(app($myParcelOrder->carrier)::CONSIGNMENT)->getCarrierId()))
+                    ->setApiKey(self::apiKey($myParcelOrder->order->site_id, false))
+                    ->setReferenceIdentifier($myParcelOrder->id . '-' . $myParcelOrder->order->id)
+                    ->setPackageType($myParcelOrder->package_type)
+                    ->setDeliveryType($myParcelOrder->delivery_type)
+                    ->setCountry($myParcelOrder->order->countryIsoCode)
+                    ->setPerson($myParcelOrder->order->name)
+                    ->setFullStreet($myParcelOrder->order->street . ' ' . $myParcelOrder->order->house_nr)
+                    ->setPostalCode(trim($myParcelOrder->order->zip_code))
+                    ->setCity($myParcelOrder->order->city)
+                    ->setEmail($myParcelOrder->order->email)
+                    ->setPhone($myParcelOrder->order->phone_number)
+                    ->setLabelDescription('Bestelling ' . $myParcelOrder->order->invoice_id);
+
+                $consignments->addConsignment($consigment);
+            } catch (Exception $e) {
+                $myParcelOrder->error = $e->getMessage();
+                $myParcelOrder->save();
+            }
+        }
+
+        $response = $consignments
             ->setPdfOfLabels('a6');
-        $consigments->addConsignment($consigment);
-        $consigments->addConsignment($consigment);
 
+        foreach ($response->getConsignments() as $shipment) {
+            $myParcelOrder = MyParcelOrder::find(str($shipment->getReferenceIdentifier())->explode('-')->first());
+            $myParcelOrder->shipment_id = $shipment->getConsignmentId();
+            $myParcelOrder->label_printed = 1;
+            $myParcelOrder->track_and_trace = [
+                [
+                    $shipment->getBarcode() => $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode),
+                ]
+            ];
+            $myParcelOrder->save();
 
-        $consigmentId = $consigments->first()->getConsignmentId();
-
-        $response = $consigments->downloadPdfOfLabels();
-        dd($response);
-
-        //        }catch (Exception $e){
-        //            return [
-        //                'success' => false,
-        //                'message' => $e->getMessage(),
-        //            ];
-        //        }
-
-        dd($consigmentId, $response);
+            $myParcelOrder->order->addTrackAndTrace('my-parcel', $shipment->getCarrierName(), $shipment->getBarcode(), $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode));
+        }
 
         return $response;
     }
@@ -113,6 +123,27 @@ class MyParcel
             5 => 'Pallet',
             6 => 'Klein pakket',
         ];
+    }
+
+    public static function getBiggestPackageNeededByIds(array $packageTypeIds, string $siteId): int
+    {
+        if (count($packageTypeIds) >= Customsetting::get('my_parcel_minimum_product_count', $siteId)) {
+            return Customsetting::get('my_parcel_minimum_product_count_package_type', $siteId);
+        }
+
+        if (in_array(5, $packageTypeIds)) {
+            return 5;
+        } elseif (in_array(4, $packageTypeIds)) {
+            return 4;
+        } elseif (in_array(1, $packageTypeIds)) {
+            return 1;
+        } elseif (in_array(6, $packageTypeIds)) {
+            return 6;
+        } elseif (in_array(2, $packageTypeIds)) {
+            return 2;
+        } elseif (in_array(3, $packageTypeIds)) {
+            return 3;
+        }
     }
 
     public static function getDeliveryTypes(): array

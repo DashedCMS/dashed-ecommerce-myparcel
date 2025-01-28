@@ -46,7 +46,7 @@ class ShowPushToMyParcelOrder extends Component implements HasForms, HasActions
             ->fillForm(function () {
                 $data = [];
 
-                $myParcelOrder = $this->order->myParcelOrders->first();
+                $myParcelOrder = $this->order->myParcelOrders()->where('label_printed', 0)->first();
 
                 $data['package_type'] = $myParcelOrder->package_type ?? Customsetting::get('my_parcel_default_package_type', null, 1);
                 $data['delivery_type'] = $myParcelOrder->delivery_type ?? Customsetting::get('my_parcel_default_delivery_type', null, 2);
@@ -75,68 +75,25 @@ class ShowPushToMyParcelOrder extends Component implements HasForms, HasActions
             ->action(function ($data) {
                 $this->validate();
 
-                $response = MyParcel::createShipment($this->order, $data);
-                dd($response);
-                if (isset($response['shipment_id'])) {
-                    $myparcelOrder = new MyParcelOrder();
-                    $myparcelOrder->order_id = $this->order->id;
-                    $myparcelOrder->shipment_id = $response['shipment_id'];
-                    $myparcelOrder->label = $response['label'];
-                    $time = uniqid();
-                    Storage::disk('public')->put('/dashed/orders/myparcel/labels/label-' . $this->order->invoice_id . '-' . $time . '.pdf', base64_decode($response['label']));
-                    $myparcelOrder->label_url = '/myparcel/labels/label-' . $this->order->invoice_id . '-' . $time . '.pdf';
-                    $myparcelOrder->track_and_trace = $response['track_and_trace'];
-                    $myparcelOrder->save();
-
-                    foreach ($response['track_and_trace'] as $code => $link) {
-                        $this->order->addTrackAndTrace('myparcel', $data['service'], $code, $link);
-                    }
-
-                    $orderLog = new OrderLog();
-                    $orderLog->order_id = $this->order->id;
-                    $orderLog->user_id = Auth::user()->id;
-                    $orderLog->tag = 'order.pushed-to-myparcel';
-                    $orderLog->save();
-
-                    //                    try {
-                    //                        Mail::to($this->order->email)->send(new TrackandTraceMail($myparcelOrder));
-                    //
-                    //                        $orderLog = new OrderLog();
-                    //                        $orderLog->order_id = $this->order->id;
-                    //                        $orderLog->user_id = Auth::user()->id;
-                    //                        $orderLog->tag = 'order.t&t.send';
-                    //                        $orderLog->save();
-                    //                    } catch (\Exception $e) {
-                    //                        $orderLog = new OrderLog();
-                    //                        $orderLog->order_id = $this->order->id;
-                    //                        $orderLog->user_id = Auth::user()->id;
-                    //                        $orderLog->tag = 'order.t&t.not-send';
-                    //                        $orderLog->save();
-                    //                    }
-
-
-                    $this->dispatch('refreshPage');
-                    Notification::make()
-                        ->title('De bestelling is naar MyParcel gepushed.')
-                        ->success()
-                        ->send();
-                } else {
-                    foreach ($response as $error) {
-                        if (is_array($error)) {
-                            foreach ($error as $errorItem) {
-                                Notification::make()
-                                    ->title($errorItem)
-                                    ->danger()
-                                    ->send();
-                            }
-                        } else {
-                            Notification::make()
-                                ->title($error)
-                                ->danger()
-                                ->send();
-                        }
-                    }
+                $myParcelOrder = $this->order->myParcelOrders()->where('label_printed', 0)->first();
+                if (!$myParcelOrder) {
+                    $this->order->myParcelOrders()->create([
+                        'carrier' => $data['carrier'],
+                        'package_type' => $data['package_type'],
+                        'delivery_type' => $data['delivery_type'],
+                    ]);
+                }else{
+                    $myParcelOrder->update([
+                        'carrier' => $data['carrier'],
+                        'package_type' => $data['package_type'],
+                        'delivery_type' => $data['delivery_type'],
+                    ]);
                 }
+
+                Notification::make()
+                    ->title('De bestelling is klaargezet voor MyParcel.')
+                    ->success()
+                    ->send();
             });
     }
 }

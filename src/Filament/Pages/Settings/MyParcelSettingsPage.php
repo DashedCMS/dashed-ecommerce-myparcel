@@ -35,6 +35,8 @@ class MyParcelSettingsPage extends Page
             $formData["my_parcel_default_package_type_{$site['id']}"] = Customsetting::get('my_parcel_default_package_type', $site['id'], 1);
             $formData["my_parcel_default_delivery_type_{$site['id']}"] = Customsetting::get('my_parcel_default_delivery_type', $site['id'], 2);
             $formData["my_parcel_default_carrier_{$site['id']}"] = Customsetting::get('my_parcel_default_carrier', $site['id'], CarrierPostNL::class);
+            $formData["my_parcel_minimum_product_count_{$site['id']}"] = Customsetting::get('my_parcel_minimum_product_count', $site['id'], 2);
+            $formData["my_parcel_minimum_product_count_package_type_{$site['id']}"] = Customsetting::get('my_parcel_minimum_product_count_package_type', $site['id'], 1);
         }
         $this->form->fill($formData);
     }
@@ -55,7 +57,7 @@ class MyParcelSettingsPage extends Page
                         'lg' => 2,
                     ]),
                 Placeholder::make('label')
-                    ->label("MyParcel is " . (! Customsetting::get('my_parcel_connected', $site['id'], 0) ? 'niet' : '') . ' geconnect')
+                    ->label("MyParcel is " . (!Customsetting::get('my_parcel_connected', $site['id'], 0) ? 'niet' : '') . ' geconnect')
                     ->content(Customsetting::get('my_parcel_connection_error', $site['id'], ''))
                     ->columnSpan([
                         'default' => 1,
@@ -78,7 +80,7 @@ class MyParcelSettingsPage extends Page
                     ]),
                 Select::make("my_parcel_default_carrier_{$site['id']}")
                     ->label('Automatische bestelling carrier')
-                    ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
+                    ->required(fn(Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
                     ->reactive()
                     ->options(MyParcel::getCarriers())
                     ->columnSpan([
@@ -87,7 +89,7 @@ class MyParcelSettingsPage extends Page
                     ]),
                 Select::make("my_parcel_default_package_type_{$site['id']}")
                     ->label('Automatische bestelling pakket type')
-                    ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
+                    ->required(fn(Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
                     ->reactive()
                     ->options(MyParcel::getPackageTypes())
                     ->helperText('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen')
@@ -97,10 +99,30 @@ class MyParcelSettingsPage extends Page
                     ]),
                 Select::make("my_parcel_default_delivery_type_{$site['id']}")
                     ->label('Automatisch bestelling verzend type')
-                    ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
+                    ->required(fn(Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
                     ->reactive()
                     ->options(MyParcel::getDeliveryTypes())
                     ->helperText('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen')
+                    ->columnSpan([
+                        'default' => 1,
+                        'lg' => 2,
+                    ]),
+                TextInput::make("my_parcel_minimum_product_count_{$site['id']}")
+                    ->label('Standaard pakket type vanaf een bepaald aantal producten')
+                    ->required(fn(Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
+                    ->reactive()
+                    ->numeric()
+                    ->minValue(1)
+                    ->maxValue(1000)
+                    ->columnSpan([
+                        'default' => 1,
+                        'lg' => 2,
+                    ]),
+                Select::make("my_parcel_minimum_product_count_package_type_{$site['id']}")
+                    ->label('Standaard pakket type vanaf een bepaald aantal producten')
+                    ->required(fn(Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
+                    ->reactive()
+                    ->options(MyParcel::getPackageTypes())
                     ->columnSpan([
                         'default' => 1,
                         'lg' => 2,
@@ -136,6 +158,8 @@ class MyParcelSettingsPage extends Page
             Customsetting::set('my_parcel_default_package_type', $this->form->getState()["my_parcel_default_package_type_{$site['id']}"], $site['id']);
             Customsetting::set('my_parcel_default_delivery_type', $this->form->getState()["my_parcel_default_delivery_type_{$site['id']}"], $site['id']);
             Customsetting::set('my_parcel_default_carrier', $this->form->getState()["my_parcel_default_carrier_{$site['id']}"], $site['id']);
+            Customsetting::set('my_parcel_minimum_product_count', $this->form->getState()["my_parcel_minimum_product_count_{$site['id']}"], $site['id']);
+            Customsetting::set('my_parcel_minimum_product_count_package_type', $this->form->getState()["my_parcel_minimum_product_count_package_type_{$site['id']}"], $site['id']);
             Customsetting::set('my_parcel_connected', MyParcel::isConnected($site['id']), $site['id']);
         }
 

@@ -2,6 +2,10 @@
 
 namespace Dashed\DashedEcommerceMyParcel;
 
+use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
+use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Filament\Actions\Action;
 use Spatie\LaravelPackageTools\Package;
@@ -32,13 +36,48 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
                     array_merge(ecommerce()->buttonActions('orders'), [
                         Action::make('downloadMyParcelLabels')
                             ->button()
-                            ->label('Download MyParcel Labels')
-                            ->url(url(config('filament.path', 'dashed') . '/myparcel/download-labels'))
-                            ->openUrlInNewTab(),
+                            ->label('Download MyParcel Labels (' . MyParcelOrder::where('label_printed', 0)->count() . ')')
+                            ->openUrlInNewTab()
+                            ->action(function () {
+                                $response = MyParcel::createShipments();
+
+                                $pdf = $response->getLabelPdf();
+
+                                Storage::disk('public')->put('dashed/orders/my-parcel/labels.pdf', $pdf);
+
+                                Notification::make()
+                                    ->body('Labels zijn aangemaakt')
+                                    ->persistent()
+                                    ->actions([
+                                        \Filament\Notifications\Actions\Action::make('download')
+                                            ->label('Download')
+                                            ->button()
+                                            ->url(Storage::disk('public')->url('dashed/orders/my-parcel/labels.pdf'))
+                                            ->openUrlInNewTab(),
+                                    ])
+                                    ->success()
+                                    ->send();
+                            })
+//                            ->url(url(config('filament.path', 'dashed') . '/myparcel/download-labels'))
+//                            ->openUrlInNewTab(),
                     ])
                 );
             }
         }
+
+        cms()->builder('builderBlockClasses', [
+            self::class => 'builderBlocks',
+        ]);
+    }
+
+    public static function builderBlocks(): void
+    {
+        cms()
+            ->builder('productGroupBlocks', [
+                Select::make('my-parcel-package-type')
+                    ->label('MyParcel pakket type')
+                    ->options(MyParcel::getPackageTypes()),
+            ]);
     }
 
     public function configurePackage(Package $package): void

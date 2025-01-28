@@ -6,7 +6,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
 
-class CreateMyParcelOrderTable extends Migration
+class AddMyParcelOrderTableFields extends Migration
 {
     /**
      * Run the migrations.
@@ -24,6 +24,9 @@ class CreateMyParcelOrderTable extends Migration
                 ->nullable();
             $table->string('delivery_type')
                 ->after('package_type')
+                ->nullable();
+            $table->string('error')
+                ->after('delivery_type')
                 ->nullable();
         });
     }

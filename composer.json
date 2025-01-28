@@ -51,7 +51,8 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Dashed\\DashedEcommerceMyParcel\\DashedEcommerceMyParcelServiceProvider"
+                "Dashed\\DashedEcommerceMyParcel\\DashedEcommerceMyParcelServiceProvider",
+                "Dashed\\DashedEcommerceMyParcel\\DashedEcommerceMyParcelEventServiceProvider"
             ],
             "aliases": {
                 "DashedEcommerceMyParcel": "Dashed\\DashedEcommerceMyParcel\\Facades\\DashedEcommerceMyParcel"

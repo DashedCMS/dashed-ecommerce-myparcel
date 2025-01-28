@@ -3,9 +3,11 @@
 namespace Dashed\DashedEcommerceMyParcel\Classes;
 
 use Dashed\DashedCore\Classes\Sites;
+use Exception;
 use Illuminate\Support\Facades\Http;
 use Dashed\DashedCore\Models\Customsetting;
 use Dashed\DashedEcommerceCore\Models\Order;
+use MyParcelNL\Sdk\src\Helper\MyParcelCollection;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierDPD;
 use MyParcelNL\Sdk\src\Factory\ConsignmentFactory;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierBpost;
@@ -18,9 +20,9 @@ class MyParcel
         return 'DashedCMS/2.0 PHP/8.2';
     }
 
-    public static function apiKey($siteId): string
+    public static function apiKey($siteId, $encoded = true): string
     {
-        return base64_encode(Customsetting::get('my_parcel_api_key', $siteId));
+        return $encoded ? base64_encode(Customsetting::get('my_parcel_api_key', $siteId)) : Customsetting::get('my_parcel_api_key', $siteId);
     }
 
     public static function baseUrl(): string
@@ -30,7 +32,7 @@ class MyParcel
 
     public static function isConnected($siteId = null)
     {
-        if (! $siteId) {
+        if (!$siteId) {
             $siteId = Sites::getActive();
         }
 
@@ -50,42 +52,39 @@ class MyParcel
 
     public static function createShipment(Order $order, $formData)
     {
+//        try{
         $carrier = $formData['carrier'] ?? Customsetting::get('my_parcel_default_carrier', $order->site_id, CarrierPostNL::class);
-        dd(app(CarrierPostNL::class));
-        dd(app($carrier)::CONSIGNMENT->getCarrierId());
-        $consignment = (ConsignmentFactory::createByCarrierId(app(Customsetting::get('my_parcel_default_carrier', $order->site_id, CarrierPostNL::class))::CONSIGNMENT->getCarrierId()));
-        dd($consignment);
+        $consigment = (ConsignmentFactory::createByCarrierId(app(app($carrier)::CONSIGNMENT)->getCarrierId()))
+            ->setApiKey(self::apiKey($order->site_id, false))
+            ->setReferenceIdentifier('order-' . $order->id)
+            ->setCountry($order->countryIsoCode)
+            ->setPerson($order->name)
+            ->setFullStreet($order->street . ' ' . $order->house_nr)
+            ->setPostalCode(trim($order->zip_code))
+            ->setCity($order->city)
+            ->setEmail($order->email)
+            ->setPhone($order->phone_number)
+            ->setLabelDescription('Bestelling ' . $order->invoice_id);
 
-        $data = [
-            'product' => $formData['shipping_method'],
-            'service' => $formData['service'],
-            'amount' => 1,
-            'reference' => 'Order ' . $order->invoice_id,
-            'company_name' => $order->company_name,
-            'contact_person' => $order->name,
-            'street_line_1' => $order->street,
-            'number_line_1' => $order->house_nr,
-            'number_line_1_addition' => '',
-            'zip_code' => $order->zip_code,
-            'city' => $order->city,
-            'country' => $order->countryIsoCode,
-            'phone' => $order->phone_number,
-            'email' => $order->email,
-        ];
+        $consigments = (new MyParcelCollection())
+            ->setPdfOfLabels('a6');
+        $consigments->addConsignment($consigment);
+        $consigments->addConsignment($consigment);
 
-        foreach ($formData as $key => $value) {
-            if (str($key)->contains('shipping_method_service_') && str($key)->contains('_option_') && $value) {
-                $data[str($key)->explode('_')->last()] = $value;
-            }
-        }
 
-        $response = Http::withHeaders([
-            'Accept' => 'application/vnd.shipment_label+json;charset=utf-8',
-            'Content-Type' => 'application/vnd.shipment+json;charset=utf-8;version=1.1',
-        ])
-            ->withToken(self::apiKey($order->site_id))
-            ->post(self::baseUrl() . '/shipments?paper_size=a6', [$data])
-            ->json();
+        $consigmentId = $consigments->first()->getConsignmentId();
+
+        $response = $consigments->downloadPdfOfLabels();
+        dd($response);
+
+//        }catch (Exception $e){
+//            return [
+//                'success' => false,
+//                'message' => $e->getMessage(),
+//            ];
+//        }
+
+        dd($consigmentId, $response);
 
         return $response;
     }

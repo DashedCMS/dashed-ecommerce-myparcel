@@ -2,13 +2,13 @@
 
 namespace Dashed\DashedEcommerceMyParcel\Classes;
 
-use Dashed\DashedCore\Classes\Sites;
 use Exception;
+use Dashed\DashedCore\Classes\Sites;
 use Illuminate\Support\Facades\Http;
 use Dashed\DashedCore\Models\Customsetting;
 use Dashed\DashedEcommerceCore\Models\Order;
-use MyParcelNL\Sdk\src\Helper\MyParcelCollection;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierDPD;
+use MyParcelNL\Sdk\src\Helper\MyParcelCollection;
 use MyParcelNL\Sdk\src\Factory\ConsignmentFactory;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierBpost;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierPostNL;
@@ -32,7 +32,7 @@ class MyParcel
 
     public static function isConnected($siteId = null)
     {
-        if (!$siteId) {
+        if (! $siteId) {
             $siteId = Sites::getActive();
         }
 
@@ -52,7 +52,7 @@ class MyParcel
 
     public static function createShipment(Order $order, $formData)
     {
-//        try{
+        //        try{
         $carrier = $formData['carrier'] ?? Customsetting::get('my_parcel_default_carrier', $order->site_id, CarrierPostNL::class);
         $consigment = (ConsignmentFactory::createByCarrierId(app(app($carrier)::CONSIGNMENT)->getCarrierId()))
             ->setApiKey(self::apiKey($order->site_id, false))
@@ -77,12 +77,12 @@ class MyParcel
         $response = $consigments->downloadPdfOfLabels();
         dd($response);
 
-//        }catch (Exception $e){
-//            return [
-//                'success' => false,
-//                'message' => $e->getMessage(),
-//            ];
-//        }
+        //        }catch (Exception $e){
+        //            return [
+        //                'success' => false,
+        //                'message' => $e->getMessage(),
+        //            ];
+        //        }
 
         dd($consigmentId, $response);
 

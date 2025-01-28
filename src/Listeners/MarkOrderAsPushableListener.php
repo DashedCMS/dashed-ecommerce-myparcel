@@ -4,9 +4,8 @@ namespace Dashed\DashedEcommerceMyParcel\Listeners;
 
 use Dashed\DashedCore\Models\Customsetting;
 use Dashed\DashedEcommerceCore\Models\OrderLog;
-use Dashed\DashedEcommerceMontaportal\Classes\Montaportal;
-use Dashed\DashedEcommerceCore\Events\Orders\OrderMarkedAsPaidEvent;
 use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
+use Dashed\DashedEcommerceCore\Events\Orders\OrderMarkedAsPaidEvent;
 
 class MarkOrderAsPushableListener
 {
@@ -37,7 +36,7 @@ class MarkOrderAsPushableListener
                 $orderLog->tag = 'system.note.created';
                 $orderLog->note = 'Bestelling klaargezet voor MyParcel';
                 $orderLog->save();
-            } elseif (!MyParcel::isConnected($event->order->site_id)) {
+            } elseif (! MyParcel::isConnected($event->order->site_id)) {
                 $orderLog = new OrderLog();
                 $orderLog->order_id = $event->order->id;
                 $orderLog->user_id = null;

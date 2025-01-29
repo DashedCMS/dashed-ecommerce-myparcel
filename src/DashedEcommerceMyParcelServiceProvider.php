@@ -2,6 +2,7 @@
 
 namespace Dashed\DashedEcommerceMyParcel;
 
+use Dashed\DashedEcommerceMyParcel\Jobs\CreateShippingLabelsJob;
 use Livewire\Livewire;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -39,27 +40,13 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
                             ->label('Download MyParcel Labels (' . MyParcelOrder::where('label_printed', 0)->count() . ')')
                             ->openUrlInNewTab()
                             ->action(function () {
-                                $response = MyParcel::createShipments();
-
-                                $pdf = $response->getLabelPdf();
-
-                                Storage::disk('public')->put('dashed/orders/my-parcel/labels.pdf', $pdf);
+                                CreateShippingLabelsJob::dispatch(auth()->user());
 
                                 Notification::make()
-                                    ->body('Labels zijn aangemaakt')
-                                    ->persistent()
-                                    ->actions([
-                                        \Filament\Notifications\Actions\Action::make('download')
-                                            ->label('Download')
-                                            ->button()
-                                            ->url(Storage::disk('public')->url('dashed/orders/my-parcel/labels.pdf'))
-                                            ->openUrlInNewTab(),
-                                    ])
+                                    ->body('Labels worden aangemaakt, ze staan over een paar minuten klaar om te downloaden')
                                     ->success()
                                     ->send();
                             }),
-//                            ->url(url(config('filament.path', 'dashed') . '/myparcel/download-labels'))
-//                            ->openUrlInNewTab(),
                     ])
                 );
             }

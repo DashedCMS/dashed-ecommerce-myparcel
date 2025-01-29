@@ -4,8 +4,10 @@ namespace Dashed\DashedEcommerceMyParcel\Classes;
 
 use Exception;
 use Dashed\DashedCore\Classes\Sites;
+use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Http;
 use Dashed\DashedCore\Models\Customsetting;
+use Illuminate\Support\Facades\Storage;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierDPD;
 use MyParcelNL\Sdk\src\Helper\MyParcelCollection;
 use MyParcelNL\Sdk\src\Factory\ConsignmentFactory;
@@ -32,7 +34,7 @@ class MyParcel
 
     public static function isConnected($siteId = null)
     {
-        if (! $siteId) {
+        if (!$siteId) {
             $siteId = Sites::getActive();
         }
 
@@ -55,7 +57,10 @@ class MyParcel
         $consignments = (new MyParcelCollection())
             ->setUserAgents(['DashedCMS', '2.0']);
 
-        foreach (MyParcelOrder::where('label_printed', 0)->get() as $myParcelOrder) {
+        $myParcelOrders = MyParcelOrder::where('label_printed', 0)->get();
+        $orders = [];
+
+        foreach ($myParcelOrders as $key => $myParcelOrder) {
             try {
                 $consigment = (ConsignmentFactory::createByCarrierId(app(app($myParcelOrder->carrier)::CONSIGNMENT)->getCarrierId()))
                     ->setApiKey(self::apiKey($myParcelOrder->order->site_id, false))
@@ -72,6 +77,7 @@ class MyParcel
                     ->setLabelDescription('Bestelling ' . $myParcelOrder->order->invoice_id);
 
                 $consignments->addConsignment($consigment);
+                $orders[] = $myParcelOrder->order;
             } catch (Exception $e) {
                 $myParcelOrder->error = $e->getMessage();
                 $myParcelOrder->save();
@@ -84,7 +90,7 @@ class MyParcel
         foreach ($response->getConsignments() as $shipment) {
             $myParcelOrder = MyParcelOrder::find(str($shipment->getReferenceIdentifier())->explode('-')->first());
             $myParcelOrder->shipment_id = $shipment->getConsignmentId();
-            $myParcelOrder->label_printed = 1;
+//            $myParcelOrder->label_printed = 1;
             $myParcelOrder->track_and_trace = [
                 [
                     $shipment->getBarcode() => $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode),
@@ -95,7 +101,15 @@ class MyParcel
             $myParcelOrder->order->addTrackAndTrace('my-parcel', $shipment->getCarrierName(), $shipment->getBarcode(), $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode));
         }
 
-        return $response;
+        $pdf = $response->getLabelPdf();
+
+        $filePath = 'dashed/orders/my-parcel/labels-' . time() . '.pdf';
+        Storage::disk('public')->put($filePath, $pdf);
+
+        return [
+            'filePath' => $filePath,
+            'orders' => $orders,
+        ];
     }
 
     public static function getLabelsFromShipments(array $shipmentIds = [])

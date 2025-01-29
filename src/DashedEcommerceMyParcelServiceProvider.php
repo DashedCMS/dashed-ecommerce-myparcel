@@ -2,6 +2,7 @@
 
 namespace Dashed\DashedEcommerceMyParcel;
 
+use Dashed\DashedCore\DashedCorePlugin;
 use Livewire\Livewire;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -116,5 +117,9 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
                 ],
             ])
         );
+
+        cms()->builder('plugins', [
+            new DashedEcommerceMyParcelPlugin(),
+        ]);
     }
 }

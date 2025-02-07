@@ -77,17 +77,7 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
             ])
             ->hasViews();
 
-        cms()->builder(
-            'settingPages',
-            array_merge(cms()->builder('settingPages'), [
-                'myparcel' => [
-                    'name' => 'MyParcel',
-                    'description' => 'Koppel MyParcel',
-                    'icon' => 'archive-box',
-                    'page' => MyParcelSettingsPage::class,
-                ],
-            ])
-        );
+        cms()->registerSettingsPage(MyParcelSettingsPage::class, 'MyParcel', 'archive-box', 'Koppel MyParcel');
 
         ecommerce()->widgets(
             'orders',

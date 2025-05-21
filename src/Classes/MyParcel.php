@@ -77,6 +77,8 @@ class MyParcel
 
                 $consignments->addConsignment($consigment);
                 $orders[] = $myParcelOrder->order;
+                $myParcelOrder->label_printed = 1;
+                $myParcelOrder->save();
             } catch (Exception $e) {
                 $myParcelOrder->error = $e->getMessage();
                 $myParcelOrder->save();

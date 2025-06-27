@@ -2,6 +2,8 @@
 
 namespace Dashed\DashedEcommerceMyParcel;
 
+use Dashed\DashedEcommerceMyParcel\Commands\CheckMyParcelOrders;
+use Illuminate\Console\Scheduling\Schedule;
 use Livewire\Livewire;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -27,6 +29,11 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
 
         Order::addDynamicRelation('myParcelOrders', function (Order $model) {
             return $model->hasMany(MyParcelOrder::class);
+        });
+
+        $this->app->booted(function () {
+            $schedule = app(Schedule::class);
+            $schedule->command(CheckMyParcelOrders::class)->daily();
         });
 
         if (cms()->isCMSRoute()) {
@@ -74,6 +81,9 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
             ->name('dashed-ecommerce-myparcel')
             ->hasRoutes([
                 'MyParcelRoutes',
+            ])
+            ->hasCommands([
+                CheckMyParcelOrders::class,
             ])
             ->hasViews();
 

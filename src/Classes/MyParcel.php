@@ -113,19 +113,19 @@ class MyParcel
         ];
     }
 
-//    public static function getLabelsFromShipments(array $shipmentIds = [])
-//    {
-//        $response = Http::withHeaders([
-//            'Accept' => 'application/json',
-//            'Content-Type' => 'application/json',
-//        ])
-//            ->post('https://api.myparcel.com/api/v2/label?api_token=' . Customsetting::get('myparcel_api_key'), [
-//                'shipments' => $shipmentIds,
-//            ])
-//            ->json();
-//
-//        return $response;
-//    }
+    //    public static function getLabelsFromShipments(array $shipmentIds = [])
+    //    {
+    //        $response = Http::withHeaders([
+    //            'Accept' => 'application/json',
+    //            'Content-Type' => 'application/json',
+    //        ])
+    //            ->post('https://api.myparcel.com/api/v2/label?api_token=' . Customsetting::get('myparcel_api_key'), [
+    //                'shipments' => $shipmentIds,
+    //            ])
+    //            ->json();
+    //
+    //        return $response;
+    //    }
 
     public static function getShipment($shipmentId)
     {

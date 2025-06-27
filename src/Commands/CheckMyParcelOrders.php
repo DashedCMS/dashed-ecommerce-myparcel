@@ -2,9 +2,8 @@
 
 namespace Dashed\DashedEcommerceMyParcel\Commands;
 
-use Dashed\DashedEcommerceCore\Models\Order;
 use Illuminate\Console\Command;
-use Dashed\DashedCore\Classes\Sitemap;
+use Dashed\DashedEcommerceCore\Models\Order;
 
 class CheckMyParcelOrders extends Command
 {

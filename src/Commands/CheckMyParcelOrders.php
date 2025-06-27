@@ -2,8 +2,10 @@
 
 namespace Dashed\DashedEcommerceMyParcel\Commands;
 
-use Illuminate\Console\Command;
 use Dashed\DashedEcommerceCore\Models\Order;
+use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
+use Illuminate\Console\Command;
+use Dashed\DashedCore\Classes\Sitemap;
 
 class CheckMyParcelOrders extends Command
 {
@@ -38,17 +40,24 @@ class CheckMyParcelOrders extends Command
      */
     public function handle()
     {
-        foreach (Order::isPaid()->where('fulfillment_status', '!=', 'handled')->get() as $order) {
-            $allMyParcelOrdersShipped = false;
-            $allMyParcelOrdersDeliverd = false;
-            $order->myParcelOrders->each(function ($myParcelOrder) {
+        foreach (Order::thisSite()->isPaid()->where('fulfillment_status', '!=', 'handled')->get() as $order) {
+            $allMyParcelOrdersShipped = true;
+            $allMyParcelOrdersDeliverd = true;
 
+            $order->myParcelOrders->each(function ($myParcelOrder) use ($order){
+                $shipment = MyParcel::getShipment($myParcelOrder->shipment_id, $order->site_id);
+                $statusCode = $shipment['data']['shipments'][0]['status'] ?? 0;
+                if(!in_array($statusCode, [7,8,9,10,11,19])) {
+                    $allMyParcelOrdersDeliverd = false;
+                }elseif(!in_array($statusCode, [3,4,5,6])) {
+                    $allMyParcelOrdersShipped = false;
+                }
             });
 
             if ($allMyParcelOrdersDeliverd) {
-                $this->changeFulfillmentStatus('handled');
+                $order->changeFulfillmentStatus('handled');
             } elseif ($allMyParcelOrdersShipped) {
-                $this->changeFulfillmentStatus('shipped');
+                $order->changeFulfillmentStatus('shipped');
             }
         }
     }

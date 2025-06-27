@@ -113,28 +113,29 @@ class MyParcel
         ];
     }
 
-    //    public static function getLabelsFromShipments(array $shipmentIds = [])
-    //    {
-    //        $response = Http::withHeaders([
-    //            'Accept' => 'application/json',
-    //            'Content-Type' => 'application/json',
-    //        ])
-    //            ->post('https://api.myparcel.com/api/v2/label?api_token=' . Customsetting::get('myparcel_api_key'), [
-    //                'shipments' => $shipmentIds,
-    //            ])
-    //            ->json();
-    //
-    //        return $response;
-    //    }
+//    public static function getLabelsFromShipments(array $shipmentIds = [])
+//    {
+//        $response = Http::withHeaders([
+//            'Accept' => 'application/json',
+//            'Content-Type' => 'application/json',
+//        ])
+//            ->post('https://api.myparcel.com/api/v2/label?api_token=' . Customsetting::get('myparcel_api_key'), [
+//                'shipments' => $shipmentIds,
+//            ])
+//            ->json();
+//
+//        return $response;
+//    }
 
-    public static function getShipment($shipmentId)
+    public static function getShipment(int|string $shipmentId, string $siteId)
     {
         $response = Http::withHeaders([
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
+            'User-Agent' => self::getUserAgent(),
         ])
-            ->withToken(base64_encode(Customsetting::get('myparcel_api_key')))
-            ->get('https://api.myparcel.com/api/v2/label', [
+            ->withToken(self::apiKey($siteId))
+            ->get(self::baseUrl() . '/shipments', [
                 'id' => $shipmentId,
             ])
             ->json();

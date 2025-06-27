@@ -2,10 +2,9 @@
 
 namespace Dashed\DashedEcommerceMyParcel\Commands;
 
+use Illuminate\Console\Command;
 use Dashed\DashedEcommerceCore\Models\Order;
 use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
-use Illuminate\Console\Command;
-use Dashed\DashedCore\Classes\Sitemap;
 
 class CheckMyParcelOrders extends Command
 {
@@ -44,12 +43,12 @@ class CheckMyParcelOrders extends Command
             $allMyParcelOrdersShipped = true;
             $allMyParcelOrdersDeliverd = true;
 
-            $order->myParcelOrders->each(function ($myParcelOrder) use ($order){
+            $order->myParcelOrders->each(function ($myParcelOrder) use ($order) {
                 $shipment = MyParcel::getShipment($myParcelOrder->shipment_id, $order->site_id);
                 $statusCode = $shipment['data']['shipments'][0]['status'] ?? 0;
-                if(!in_array($statusCode, [7,8,9,10,11,19])) {
+                if (! in_array($statusCode, [7,8,9,10,11,19])) {
                     $allMyParcelOrdersDeliverd = false;
-                }elseif(!in_array($statusCode, [3,4,5,6])) {
+                } elseif (! in_array($statusCode, [3,4,5,6])) {
                     $allMyParcelOrdersShipped = false;
                 }
             });

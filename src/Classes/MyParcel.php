@@ -173,7 +173,7 @@ class MyParcel
             return 2;
         } elseif (in_array(3, $packageTypeIds)) {
             return 3;
-        }else{
+        } else {
             return 3;
         }
     }

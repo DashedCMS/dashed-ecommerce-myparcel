@@ -154,11 +154,14 @@ class MyParcelSettingsPage extends Page
         foreach ($sites as $site) {
             Customsetting::set('my_parcel_api_key', $this->form->getState()["my_parcel_api_key_{$site['id']}"], $site['id']);
             Customsetting::set('my_parcel_automatically_push_orders', $this->form->getState()["my_parcel_automatically_push_orders_{$site['id']}"], $site['id']);
-            Customsetting::set('my_parcel_default_package_type', $this->form->getState()["my_parcel_default_package_type_{$site['id']}"], $site['id']);
-            Customsetting::set('my_parcel_default_delivery_type', $this->form->getState()["my_parcel_default_delivery_type_{$site['id']}"], $site['id']);
-            Customsetting::set('my_parcel_default_carrier', $this->form->getState()["my_parcel_default_carrier_{$site['id']}"], $site['id']);
-            Customsetting::set('my_parcel_minimum_product_count', $this->form->getState()["my_parcel_minimum_product_count_{$site['id']}"], $site['id']);
-            Customsetting::set('my_parcel_minimum_product_count_package_type', $this->form->getState()["my_parcel_minimum_product_count_package_type_{$site['id']}"], $site['id']);
+            foreach ($this->activatedRegions as $region) {
+                $region = Countries::getCountryIsoCode($region);
+                Customsetting::set("my_parcel_default_package_type_{$region}", $this->form->getState()["my_parcel_default_package_type_{$region}_{$site['id']}"], $site['id']);
+                Customsetting::set("my_parcel_default_delivery_type_{$region}", $this->form->getState()["my_parcel_default_delivery_type_{$region}_{$site['id']}"], $site['id']);
+                Customsetting::set("my_parcel_default_carrier_{$region}", $this->form->getState()["my_parcel_default_carrier_{$region}_{$site['id']}"], $site['id']);
+                Customsetting::set("my_parcel_minimum_product_count_{$region}", $this->form->getState()["my_parcel_minimum_product_count_{$region}_{$site['id']}"], $site['id']);
+                Customsetting::set("my_parcel_minimum_product_count_package_type_{$region}", $this->form->getState()["my_parcel_minimum_product_count_package_type_{$region}_{$site['id']}"], $site['id']);
+            }
             Customsetting::set('my_parcel_connected', MyParcel::isConnected($site['id']), $site['id']);
         }
 

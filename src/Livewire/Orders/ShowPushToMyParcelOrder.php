@@ -42,9 +42,9 @@ class ShowPushToMyParcelOrder extends Component implements HasForms, HasActions
 
                 $myParcelOrder = $this->order->myParcelOrders()->where('label_printed', 0)->first();
 
-                $data['package_type'] = $myParcelOrder->package_type ?? Customsetting::get('my_parcel_default_package_type', null, 1);
-                $data['delivery_type'] = $myParcelOrder->delivery_type ?? Customsetting::get('my_parcel_default_delivery_type', null, 2);
-                $data['carrier'] = $myParcelOrder->carrier ?? Customsetting::get('my_parcel_default_carrier', null, CarrierPostNL::class);
+                $data['package_type'] = $myParcelOrder->package_type ?? Customsetting::get("my_parcel_default_package_type_{$this->order->countryIsoCode}", null, 1);
+                $data['delivery_type'] = $myParcelOrder->delivery_type ?? Customsetting::get("my_parcel_default_delivery_type_{$this->order->countryIsoCode}", null, 2);
+                $data['carrier'] = $myParcelOrder->carrier ?? Customsetting::get("my_parcel_default_carrier_{$this->order->countryIsoCode}", null, CarrierPostNL::class);
 
                 return $data;
             })

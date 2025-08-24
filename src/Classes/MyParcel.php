@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Dashed\DashedCore\Models\Customsetting;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierDHLEuroplus;
+use MyParcelNL\Sdk\src\Model\Carrier\CarrierDHLForYou;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierDPD;
 use MyParcelNL\Sdk\src\Helper\MyParcelCollection;
 use MyParcelNL\Sdk\src\Factory\ConsignmentFactory;
@@ -196,7 +197,8 @@ class MyParcel
             CarrierPostNL::class => 'PostNL',
             CarrierBpost::class => 'Bpost',
             CarrierDPD::class => 'DPD',
-            CarrierDHLEuroplus::class => 'DHL Europlus',
+            CarrierDHLForYou::class => 'DHL ForYou',
+//            CarrierDHLEuroplus::class => 'DHL Europlus',
         ];
     }
 }

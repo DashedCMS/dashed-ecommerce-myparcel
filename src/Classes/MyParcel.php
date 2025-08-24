@@ -7,6 +7,7 @@ use Dashed\DashedCore\Classes\Sites;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Dashed\DashedCore\Models\Customsetting;
+use MyParcelNL\Sdk\src\Model\Carrier\CarrierDHLEuroplus;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierDPD;
 use MyParcelNL\Sdk\src\Helper\MyParcelCollection;
 use MyParcelNL\Sdk\src\Factory\ConsignmentFactory;
@@ -33,7 +34,7 @@ class MyParcel
 
     public static function isConnected($siteId = null)
     {
-        if (! $siteId) {
+        if (!$siteId) {
             $siteId = Sites::getActive();
         }
 
@@ -155,10 +156,10 @@ class MyParcel
         ];
     }
 
-    public static function getBiggestPackageNeededByIds(array $packageTypeIds, string $siteId): int
+    public static function getBiggestPackageNeededByIds(string $region, array $packageTypeIds, string $siteId): int
     {
-        if (count($packageTypeIds) >= Customsetting::get('my_parcel_minimum_product_count', $siteId)) {
-            return Customsetting::get('my_parcel_minimum_product_count_package_type', $siteId);
+        if (count($packageTypeIds) >= Customsetting::get('my_parcel_minimum_product_count_' . $region, $siteId)) {
+            return Customsetting::get('my_parcel_minimum_product_count_package_type_' . $region, $siteId);
         }
 
         if (in_array(5, $packageTypeIds)) {
@@ -195,6 +196,7 @@ class MyParcel
             CarrierPostNL::class => 'PostNL',
             CarrierBpost::class => 'Bpost',
             CarrierDPD::class => 'DPD',
+            CarrierDHLEuroplus::class => 'DHL Europlus',
         ];
     }
 }

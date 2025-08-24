@@ -3,6 +3,7 @@
 namespace Dashed\DashedEcommerceMyParcel\Listeners;
 
 use Dashed\DashedCore\Models\Customsetting;
+use Dashed\DashedEcommerceCore\Classes\Countries;
 use Dashed\DashedEcommerceCore\Models\OrderLog;
 use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
 use Dashed\DashedEcommerceCore\Events\Orders\OrderMarkedAsPaidEvent;
@@ -33,14 +34,14 @@ class MarkOrderAsPushableListener
 
                 foreach ($event->order->orderProducts as $orderProduct) {
                     if ($orderProduct->product) {
-                        $packageTypeIds[] = $orderProduct->product->productGroup->contentBlocks['my-parcel-package-type'] ?? Customsetting::get('my_parcel_default_package_type', $event->order->site_id);
+                        $packageTypeIds[] = $orderProduct->product->productGroup->contentBlocks['my-parcel-package-type'] ?? Customsetting::get('my_parcel_default_package_type_' . $event->order->countryIsoCode, $event->order->site_id);
                     }
                 }
 
                 $event->order->myParcelOrders()->create([
-                    'carrier' => Customsetting::get('my_parcel_default_carrier', $event->order->site_id),
-                    'package_type' => MyParcel::getBiggestPackageNeededByIds($packageTypeIds, $event->order->site_id),
-                    'delivery_type' => Customsetting::get('my_parcel_default_delivery_type', $event->order->site_id),
+                    'carrier' => Customsetting::get('my_parcel_default_carrier_' . $event->order->countryIsoCode, $event->order->site_id),
+                    'package_type' => MyParcel::getBiggestPackageNeededByIds($event->order->countryIsoCode, $packageTypeIds, $event->order->site_id),
+                    'delivery_type' => Customsetting::get('my_parcel_default_delivery_type_' . $event->order->countryIsoCode, $event->order->site_id),
                 ]);
 
                 $orderLog = new OrderLog();

@@ -2,6 +2,8 @@
 
 namespace Dashed\DashedEcommerceMyParcel\Filament\Pages\Settings;
 
+use Dashed\DashedEcommerceCore\Classes\Countries;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Get;
 use Filament\Pages\Page;
 use Filament\Forms\Components\Tabs;
@@ -23,20 +25,26 @@ class MyParcelSettingsPage extends Page
 
     protected static string $view = 'dashed-core::settings.pages.default-settings';
     public array $data = [];
+    public array $activatedRegions = [];
 
     public function mount(): void
     {
+        $this->activatedRegions = Countries::getAllSelectedCountries();
+
         $formData = [];
         $sites = Sites::getSites();
         foreach ($sites as $site) {
             $formData["my_parcel_api_key_{$site['id']}"] = Customsetting::get('my_parcel_api_key', $site['id']);
             $formData["my_parcel_connected_{$site['id']}"] = Customsetting::get('my_parcel_connected', $site['id'], 0) ? true : false;
             $formData["my_parcel_automatically_push_orders_{$site['id']}"] = Customsetting::get('my_parcel_automatically_push_orders', $site['id'], 0) ? true : false;
-            $formData["my_parcel_default_package_type_{$site['id']}"] = Customsetting::get('my_parcel_default_package_type', $site['id'], 1);
-            $formData["my_parcel_default_delivery_type_{$site['id']}"] = Customsetting::get('my_parcel_default_delivery_type', $site['id'], 2);
-            $formData["my_parcel_default_carrier_{$site['id']}"] = Customsetting::get('my_parcel_default_carrier', $site['id'], CarrierPostNL::class);
-            $formData["my_parcel_minimum_product_count_{$site['id']}"] = Customsetting::get('my_parcel_minimum_product_count', $site['id'], 2);
-            $formData["my_parcel_minimum_product_count_package_type_{$site['id']}"] = Customsetting::get('my_parcel_minimum_product_count_package_type', $site['id'], 1);
+            foreach ($this->activatedRegions as $region) {
+                $region = Countries::getCountryIsoCode($region);
+                $formData["my_parcel_default_package_type_{$region}_{$site['id']}"] = Customsetting::get("my_parcel_default_package_type_{$region}", $site['id'], 1);
+                $formData["my_parcel_default_delivery_type_{$region}_{$site['id']}"] = Customsetting::get("my_parcel_default_delivery_type_{$region}", $site['id'], 2);
+                $formData["my_parcel_default_carrier_{$region}_{$site['id']}"] = Customsetting::get("my_parcel_default_carrier_{$region}", $site['id'], CarrierPostNL::class);
+                $formData["my_parcel_minimum_product_count_{$region}_{$site['id']}"] = Customsetting::get("my_parcel_minimum_product_count_{$region}", $site['id'], 2);
+                $formData["my_parcel_minimum_product_count_package_type_{$region}_{$site['id']}"] = Customsetting::get("my_parcel_minimum_product_count_package_type_{$region}", $site['id'], 1);
+            }
         }
         $this->form->fill($formData);
     }
@@ -48,7 +56,47 @@ class MyParcelSettingsPage extends Page
 
         $tabs = [];
         foreach ($sites as $site) {
-            $schema = [
+            $regionSchemas = [];
+
+            foreach ($this->activatedRegions as $region) {
+                $region = Countries::getCountryIsoCode($region);
+                $regionSchemas[] = Section::make('Voor bestellingen naar ' . $region)
+                    ->schema([
+                        Select::make("my_parcel_default_carrier_{$region}_{$site['id']}")
+                            ->label('Automatische bestelling carrier')
+                            ->required(fn(Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
+                            ->reactive()
+                            ->options(MyParcel::getCarriers()),
+                        Select::make("my_parcel_default_package_type_{$region}_{$site['id']}")
+                            ->label('Automatische bestelling pakket type')
+                            ->required(fn(Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
+                            ->reactive()
+                            ->options(MyParcel::getPackageTypes())
+                            ->helperText('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen'),
+                        Select::make("my_parcel_default_delivery_type_{$region}_{$site['id']}")
+                            ->label('Automatisch bestelling verzend type')
+                            ->required(fn(Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
+                            ->reactive()
+                            ->options(MyParcel::getDeliveryTypes())
+                            ->helperText('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen'),
+                        TextInput::make("my_parcel_minimum_product_count_{$region}_{$site['id']}")
+                            ->label('Standaard pakket type vanaf een bepaald aantal producten')
+                            ->required(fn(Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
+                            ->reactive()
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(1000),
+                        Select::make("my_parcel_minimum_product_count_package_type_{$region}_{$site['id']}")
+                            ->label('Standaard pakket type vanaf een bepaald aantal producten')
+                            ->required(fn(Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
+                            ->reactive()
+                            ->options(MyParcel::getPackageTypes()),
+                    ])
+                    ->columnSpanFull()
+                    ->columns(2);
+            }
+
+            $schema = array_merge([
                 Placeholder::make('label')
                     ->label("MyParcel voor {$site['name']}")
                     ->content('Activeer MyParcel.')
@@ -57,7 +105,7 @@ class MyParcelSettingsPage extends Page
                         'lg' => 2,
                     ]),
                 Placeholder::make('label')
-                    ->label("MyParcel is " . (! Customsetting::get('my_parcel_connected', $site['id'], 0) ? 'niet' : '') . ' geconnect')
+                    ->label("MyParcel is " . (!Customsetting::get('my_parcel_connected', $site['id'], 0) ? 'niet' : '') . ' geconnect')
                     ->content(Customsetting::get('my_parcel_connection_error', $site['id'], ''))
                     ->columnSpan([
                         'default' => 1,
@@ -78,56 +126,7 @@ class MyParcelSettingsPage extends Page
                         'default' => 1,
                         'lg' => 2,
                     ]),
-                Select::make("my_parcel_default_carrier_{$site['id']}")
-                    ->label('Automatische bestelling carrier')
-                    ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
-                    ->reactive()
-                    ->options(MyParcel::getCarriers())
-                    ->columnSpan([
-                        'default' => 1,
-                        'lg' => 2,
-                    ]),
-                Select::make("my_parcel_default_package_type_{$site['id']}")
-                    ->label('Automatische bestelling pakket type')
-                    ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
-                    ->reactive()
-                    ->options(MyParcel::getPackageTypes())
-                    ->helperText('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen')
-                    ->columnSpan([
-                        'default' => 1,
-                        'lg' => 2,
-                    ]),
-                Select::make("my_parcel_default_delivery_type_{$site['id']}")
-                    ->label('Automatisch bestelling verzend type')
-                    ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
-                    ->reactive()
-                    ->options(MyParcel::getDeliveryTypes())
-                    ->helperText('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen')
-                    ->columnSpan([
-                        'default' => 1,
-                        'lg' => 2,
-                    ]),
-                TextInput::make("my_parcel_minimum_product_count_{$site['id']}")
-                    ->label('Standaard pakket type vanaf een bepaald aantal producten')
-                    ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
-                    ->reactive()
-                    ->numeric()
-                    ->minValue(1)
-                    ->maxValue(1000)
-                    ->columnSpan([
-                        'default' => 1,
-                        'lg' => 2,
-                    ]),
-                Select::make("my_parcel_minimum_product_count_package_type_{$site['id']}")
-                    ->label('Standaard pakket type vanaf een bepaald aantal producten')
-                    ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
-                    ->reactive()
-                    ->options(MyParcel::getPackageTypes())
-                    ->columnSpan([
-                        'default' => 1,
-                        'lg' => 2,
-                    ]),
-            ];
+            ], $regionSchemas);
 
             $tabs[] = Tab::make($site['id'])
                 ->label(ucfirst($site['name']))

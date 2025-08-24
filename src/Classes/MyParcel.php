@@ -159,7 +159,7 @@ class MyParcel
 
     public static function getBiggestPackageNeededByIds(string $region, array $packageTypeIds, string $siteId): int
     {
-        if (count($packageTypeIds) >= Customsetting::get('my_parcel_minimum_product_count_' . $region, $siteId)) {
+        if ((count($packageTypeIds) >= Customsetting::get('my_parcel_minimum_product_count_' . $region, $siteId)) && Customsetting::get('my_parcel_minimum_product_count_package_type_' . $region, $siteId)) {
             return Customsetting::get('my_parcel_minimum_product_count_package_type_' . $region, $siteId);
         }
 

@@ -2,19 +2,19 @@
 
 namespace Dashed\DashedEcommerceMyParcel\Filament\Pages\Settings;
 
-use Dashed\DashedEcommerceCore\Classes\Countries;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Get;
 use Filament\Pages\Page;
 use Filament\Forms\Components\Tabs;
 use Dashed\DashedCore\Classes\Sites;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Tabs\Tab;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Forms\Components\Placeholder;
 use Dashed\DashedCore\Models\Customsetting;
+use Dashed\DashedEcommerceCore\Classes\Countries;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierPostNL;
 use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
 
@@ -64,31 +64,31 @@ class MyParcelSettingsPage extends Page
                     ->schema([
                         Select::make("my_parcel_default_carrier_{$region}_{$site['id']}")
                             ->label('Automatische bestelling carrier')
-                            ->required(fn(Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
+                            ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
                             ->reactive()
                             ->options(MyParcel::getCarriers()),
                         Select::make("my_parcel_default_package_type_{$region}_{$site['id']}")
                             ->label('Automatische bestelling pakket type')
-                            ->required(fn(Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
+                            ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
                             ->reactive()
                             ->options(MyParcel::getPackageTypes())
                             ->helperText('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen'),
                         Select::make("my_parcel_default_delivery_type_{$region}_{$site['id']}")
                             ->label('Automatisch bestelling verzend type')
-                            ->required(fn(Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
+                            ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
                             ->reactive()
                             ->options(MyParcel::getDeliveryTypes())
                             ->helperText('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen'),
                         TextInput::make("my_parcel_minimum_product_count_{$region}_{$site['id']}")
                             ->label('Standaard pakket type vanaf een bepaald aantal producten')
-                            ->required(fn(Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
+                            ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
                             ->reactive()
                             ->numeric()
                             ->minValue(1)
                             ->maxValue(1000),
                         Select::make("my_parcel_minimum_product_count_package_type_{$region}_{$site['id']}")
                             ->label('Standaard pakket type vanaf een bepaald aantal producten')
-                            ->required(fn(Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
+                            ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
                             ->reactive()
                             ->options(MyParcel::getPackageTypes()),
                     ])
@@ -105,7 +105,7 @@ class MyParcelSettingsPage extends Page
                         'lg' => 2,
                     ]),
                 Placeholder::make('label')
-                    ->label("MyParcel is " . (!Customsetting::get('my_parcel_connected', $site['id'], 0) ? 'niet' : '') . ' geconnect')
+                    ->label("MyParcel is " . (! Customsetting::get('my_parcel_connected', $site['id'], 0) ? 'niet' : '') . ' geconnect')
                     ->content(Customsetting::get('my_parcel_connection_error', $site['id'], ''))
                     ->columnSpan([
                         'default' => 1,

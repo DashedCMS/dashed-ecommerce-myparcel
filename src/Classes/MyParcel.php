@@ -125,8 +125,6 @@ class MyParcel
 
                 $consignments->addConsignment($consigment);
                 $orders[] = $myParcelOrder->order;
-                $myParcelOrder->label_printed = 1;
-                $myParcelOrder->save();
             } catch (Exception $e) {
                 $myParcelOrder->error = $e->getMessage();
                 $myParcelOrder->save();
@@ -145,6 +143,7 @@ class MyParcel
                     $shipment->getBarcode() => $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode),
                 ],
             ];
+            $myParcelOrder->label_printed = 1;
             $myParcelOrder->save();
 
             $myParcelOrder->order->addTrackAndTrace('my-parcel', $shipment->getCarrierName(), $shipment->getBarcode(), $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode));

@@ -2,19 +2,21 @@
 
 namespace Dashed\DashedEcommerceMyParcel\Classes;
 
+use Dashed\DashedEcommerceCore\Models\Order;
+use Dashed\DashedEcommerceCore\Models\OrderLog;
 use Exception;
 use Dashed\DashedCore\Classes\Sites;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Dashed\DashedCore\Models\Customsetting;
+use MyParcelNL\Sdk\src\Model\Carrier\CarrierDHLEuroplus;
+use MyParcelNL\Sdk\src\Model\Carrier\CarrierDHLForYou;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierDPD;
 use MyParcelNL\Sdk\src\Helper\MyParcelCollection;
 use MyParcelNL\Sdk\src\Factory\ConsignmentFactory;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierBpost;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierPostNL;
-use MyParcelNL\Sdk\src\Model\Carrier\CarrierDHLForYou;
 use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
-use MyParcelNL\Sdk\src\Model\Carrier\CarrierDHLEuroplus;
 
 class MyParcel
 {
@@ -33,9 +35,42 @@ class MyParcel
         return 'https://api.myparcel.nl';
     }
 
+    public static function connectOrderWithCarrier(Order $order)
+    {
+        if (MyParcel::isConnected($order->site_id) && !$order->myParcelOrders()->count()) {
+            $packageTypeIds = [];
+
+            foreach ($order->orderProducts as $orderProduct) {
+                if ($orderProduct->product) {
+                    $packageTypeIds[] = $orderProduct->product->productGroup->contentBlocks['my-parcel-package-type'] ?? Customsetting::get('my_parcel_default_package_type_' . $order->countryIsoCode, $order->site_id);
+                }
+            }
+
+            $order->myParcelOrders()->create([
+                'carrier' => Customsetting::get('my_parcel_default_carrier_' . $order->countryIsoCode, $order->site_id),
+                'package_type' => MyParcel::getBiggestPackageNeededByIds($order->countryIsoCode, $packageTypeIds, $order->site_id),
+                'delivery_type' => Customsetting::get('my_parcel_default_delivery_type_' . $order->countryIsoCode, $order->site_id),
+            ]);
+
+            $orderLog = new OrderLog();
+            $orderLog->order_id = $order->id;
+            $orderLog->user_id = null;
+            $orderLog->tag = 'system.note.created';
+            $orderLog->note = 'Bestelling klaargezet voor MyParcel';
+            $orderLog->save();
+        } elseif (!MyParcel::isConnected($order->site_id)) {
+            $orderLog = new OrderLog();
+            $orderLog->order_id = $order->id;
+            $orderLog->user_id = null;
+            $orderLog->tag = 'system.note.created';
+            $orderLog->note = 'MyParcel niet geconnect, bestelling niet klaargezet voor MyParcel';
+            $orderLog->save();
+        }
+    }
+
     public static function isConnected($siteId = null)
     {
-        if (! $siteId) {
+        if (!$siteId) {
             $siteId = Sites::getActive();
         }
 
@@ -62,6 +97,17 @@ class MyParcel
         $orders = [];
 
         foreach ($myParcelOrders as $key => $myParcelOrder) {
+            if (!$myParcelOrder->carrier) {
+                $order = $myParcelOrder->order;
+                $myParcelOrder->delete();
+                self::connectOrderWithCarrier($order);
+                $myParcelOrder = $order->myParcelOrders()->first();
+            }
+
+            if(!$myParcelOrder->carrier){
+                continue;
+            }
+
             try {
                 $consigment = (ConsignmentFactory::createByCarrierId(app(app($myParcelOrder->carrier)::CONSIGNMENT)->getCarrierId()))
                     ->setApiKey(self::apiKey($myParcelOrder->order->site_id, false))

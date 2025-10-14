@@ -33,7 +33,7 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
 
         $this->app->booted(function () {
             $schedule = app(Schedule::class);
-            $schedule->command(CheckMyParcelOrders::class)->everyMinute();
+            $schedule->command(CheckMyParcelOrders::class)->everyFifteenMinutes();
         });
 
         if (cms()->isCMSRoute()) {

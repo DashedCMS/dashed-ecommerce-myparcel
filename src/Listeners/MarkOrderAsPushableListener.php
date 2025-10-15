@@ -28,7 +28,7 @@ class MarkOrderAsPushableListener
      */
     public function handle(OrderMarkedAsPaidEvent $event)
     {
-        if (Customsetting::get('my_parcel_automatically_push_orders', $event->order->site_id)) {
+        if (Customsetting::get('my_parcel_automatically_push_orders', $event->order->site_id) && $event->order->street && $event->order->order_origin != 'pos') {
             MyParcel::connectOrderWithCarrier($event->order);
         }
     }

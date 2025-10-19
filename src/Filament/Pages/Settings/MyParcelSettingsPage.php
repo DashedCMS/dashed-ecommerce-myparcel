@@ -2,18 +2,19 @@
 
 namespace Dashed\DashedEcommerceMyParcel\Filament\Pages\Settings;
 
-use Filament\Forms\Get;
 use Filament\Pages\Page;
-use Filament\Forms\Components\Tabs;
+use Filament\Schemas\Schema;
 use Dashed\DashedCore\Classes\Sites;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Tabs\Tab;
+use Filament\Schemas\Components\Tabs;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
-use Filament\Forms\Components\Placeholder;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs\Tab;
 use Dashed\DashedCore\Models\Customsetting;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Utilities\Get;
 use Dashed\DashedEcommerceCore\Classes\Countries;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierPostNL;
 use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
@@ -23,7 +24,7 @@ class MyParcelSettingsPage extends Page
     protected static bool $shouldRegisterNavigation = false;
     protected static ?string $title = 'MyParcel';
 
-    protected static string $view = 'dashed-core::settings.pages.default-settings';
+    protected string $view = 'dashed-core::settings.pages.default-settings';
     public array $data = [];
     public array $activatedRegions = [];
 
@@ -49,7 +50,7 @@ class MyParcelSettingsPage extends Page
         $this->form->fill($formData);
     }
 
-    protected function getFormSchema(): array
+    public function form(Schema $schema): Schema
     {
         $sites = Sites::getSites();
         $tabGroups = [];
@@ -96,17 +97,15 @@ class MyParcelSettingsPage extends Page
                     ->columns(2);
             }
 
-            $schema = array_merge([
-                Placeholder::make('label')
-                    ->label("MyParcel voor {$site['name']}")
-                    ->content('Activeer MyParcel.')
+            $newSchema = array_merge([
+                TextEntry::make("MyParcel voor {$site['name']}")
+                    ->state('Activeer MyParcel.')
                     ->columnSpan([
                         'default' => 1,
                         'lg' => 2,
                     ]),
-                Placeholder::make('label')
-                    ->label("MyParcel is " . (! Customsetting::get('my_parcel_connected', $site['id'], 0) ? 'niet' : '') . ' geconnect')
-                    ->content(Customsetting::get('my_parcel_connection_error', $site['id'], ''))
+                TextEntry::make("MyParcel is " . (! Customsetting::get('my_parcel_connected', $site['id'], 0) ? 'niet' : '') . ' geconnect')
+                    ->state(Customsetting::get('my_parcel_connection_error', $site['id'], ''))
                     ->columnSpan([
                         'default' => 1,
                         'lg' => 2,
@@ -130,7 +129,7 @@ class MyParcelSettingsPage extends Page
 
             $tabs[] = Tab::make($site['id'])
                 ->label(ucfirst($site['name']))
-                ->schema($schema)
+                ->schema($newSchema)
                 ->columns([
                     'default' => 1,
                     'lg' => 2,
@@ -139,12 +138,8 @@ class MyParcelSettingsPage extends Page
         $tabGroups[] = Tabs::make('Sites')
             ->tabs($tabs);
 
-        return $tabGroups;
-    }
-
-    public function getFormStatePath(): ?string
-    {
-        return 'data';
+        return $schema->schema($tabGroups)
+            ->statePath('data');
     }
 
     public function submit()

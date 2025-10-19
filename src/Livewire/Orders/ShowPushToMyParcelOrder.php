@@ -5,19 +5,19 @@ namespace Dashed\DashedEcommerceMyParcel\Livewire\Orders;
 use Livewire\Component;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Schemas\Contracts\HasSchemas;
 use Dashed\DashedCore\Models\Customsetting;
 use Dashed\DashedEcommerceCore\Models\Order;
-use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Schemas\Concerns\InteractsWithSchemas;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierPostNL;
 use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
 
-class ShowPushToMyParcelOrder extends Component implements HasForms, HasActions
+class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasActions
 {
-    use InteractsWithForms;
+    use InteractsWithSchemas;
     use InteractsWithActions;
 
     public Order $order;
@@ -48,7 +48,7 @@ class ShowPushToMyParcelOrder extends Component implements HasForms, HasActions
 
                 return $data;
             })
-            ->form(function () {
+            ->schema(function () {
                 return [
                     Select::make("carrier")
                         ->label('Carrier')

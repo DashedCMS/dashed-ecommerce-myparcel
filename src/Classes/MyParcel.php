@@ -2,21 +2,21 @@
 
 namespace Dashed\DashedEcommerceMyParcel\Classes;
 
-use Dashed\DashedEcommerceCore\Models\Order;
-use Dashed\DashedEcommerceCore\Models\OrderLog;
 use Exception;
 use Dashed\DashedCore\Classes\Sites;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Dashed\DashedCore\Models\Customsetting;
-use MyParcelNL\Sdk\src\Model\Carrier\CarrierDHLEuroplus;
-use MyParcelNL\Sdk\src\Model\Carrier\CarrierDHLForYou;
+use Dashed\DashedEcommerceCore\Models\Order;
+use Dashed\DashedEcommerceCore\Models\OrderLog;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierDPD;
 use MyParcelNL\Sdk\src\Helper\MyParcelCollection;
 use MyParcelNL\Sdk\src\Factory\ConsignmentFactory;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierBpost;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierPostNL;
+use MyParcelNL\Sdk\src\Model\Carrier\CarrierDHLForYou;
 use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
+use MyParcelNL\Sdk\src\Model\Carrier\CarrierDHLEuroplus;
 
 class MyParcel
 {
@@ -37,7 +37,7 @@ class MyParcel
 
     public static function connectOrderWithCarrier(Order $order)
     {
-        if (MyParcel::isConnected($order->site_id) && !$order->myParcelOrders()->count()) {
+        if (MyParcel::isConnected($order->site_id) && ! $order->myParcelOrders()->count()) {
             $packageTypeIds = [];
 
             foreach ($order->orderProducts as $orderProduct) {
@@ -58,7 +58,7 @@ class MyParcel
             $orderLog->tag = 'system.note.created';
             $orderLog->note = 'Bestelling klaargezet voor MyParcel';
             $orderLog->save();
-        } elseif (!MyParcel::isConnected($order->site_id)) {
+        } elseif (! MyParcel::isConnected($order->site_id)) {
             $orderLog = new OrderLog();
             $orderLog->order_id = $order->id;
             $orderLog->user_id = null;
@@ -70,7 +70,7 @@ class MyParcel
 
     public static function isConnected($siteId = null)
     {
-        if (!$siteId) {
+        if (! $siteId) {
             $siteId = Sites::getActive();
         }
 
@@ -97,14 +97,14 @@ class MyParcel
         $orders = [];
 
         foreach ($myParcelOrders as $key => $myParcelOrder) {
-            if (!$myParcelOrder->carrier) {
+            if (! $myParcelOrder->carrier) {
                 $order = $myParcelOrder->order;
                 $myParcelOrder->delete();
                 self::connectOrderWithCarrier($order);
                 $myParcelOrder = $order->myParcelOrders()->first();
             }
 
-            if(!$myParcelOrder->carrier){
+            if (! $myParcelOrder->carrier) {
                 continue;
             }
 

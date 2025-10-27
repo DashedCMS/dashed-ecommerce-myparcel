@@ -25,9 +25,15 @@ class MyParcel
         return 'DashedCMS/2.0 PHP/8.2';
     }
 
-    public static function apiKey($siteId, $encoded = true): string
+    public static function apiKey(?string $siteId = null, $encoded = true): string
     {
-        return $encoded ? base64_encode(Customsetting::get('my_parcel_api_key', $siteId, disableCache: true)) : Customsetting::get('my_parcel_api_key', $siteId, disableCache: true);
+        if(!$siteId){
+            $siteId = Sites::getActive();
+        }
+
+        $apiKey = Customsetting::get('my_parcel_api_key', $siteId, disableCache: true);
+
+        return $encoded ? base64_encode($apiKey) : $apiKey;
     }
 
     public static function baseUrl(): string
@@ -90,6 +96,8 @@ class MyParcel
 
     public static function createShipments()
     {
+        $siteId = Sites::getActive();
+
         $consignments = (new MyParcelCollection())
             ->setUserAgents(['DashedCMS', '2.0']);
 
@@ -97,6 +105,10 @@ class MyParcel
         $orders = [];
 
         foreach ($myParcelOrders as $key => $myParcelOrder) {
+            if($myParcelOrder->order->site_id !== $siteId){
+                continue;
+            }
+
             if (! $myParcelOrder->carrier) {
                 $order = $myParcelOrder->order;
                 $myParcelOrder->delete();
@@ -110,7 +122,7 @@ class MyParcel
 
             try {
                 $consigment = (ConsignmentFactory::createByCarrierId(app(app($myParcelOrder->carrier)::CONSIGNMENT)->getCarrierId()))
-                    ->setApiKey(self::apiKey($myParcelOrder->order->site_id, false))
+                    ->setApiKey(self::apiKey(encoded: false))
                     ->setReferenceIdentifier($myParcelOrder->id . '-' . $myParcelOrder->order->id)
                     ->setPackageType($myParcelOrder->package_type)
                     ->setDeliveryType($myParcelOrder->delivery_type)

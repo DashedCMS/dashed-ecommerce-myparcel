@@ -27,7 +27,7 @@ class MyParcel
 
     public static function apiKey($siteId, $encoded = true): string
     {
-        return $encoded ? base64_encode(Customsetting::get('my_parcel_api_key', $siteId)) : Customsetting::get('my_parcel_api_key', $siteId);
+        return $encoded ? base64_encode(Customsetting::get('my_parcel_api_key', $siteId, disableCache: true)) : Customsetting::get('my_parcel_api_key', $siteId, disableCache: true);
     }
 
     public static function baseUrl(): string

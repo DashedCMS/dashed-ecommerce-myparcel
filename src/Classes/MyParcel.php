@@ -97,6 +97,7 @@ class MyParcel
     public static function createShipments()
     {
         $siteId = Sites::getActive();
+        $apiKey = self::apiKey($siteId, encoded: false);
 
         $consignments = (new MyParcelCollection())
             ->setUserAgents(['DashedCMS', '2.0']);
@@ -122,7 +123,7 @@ class MyParcel
 
             try {
                 $consigment = (ConsignmentFactory::createByCarrierId(app(app($myParcelOrder->carrier)::CONSIGNMENT)->getCarrierId()))
-                    ->setApiKey(self::apiKey(encoded: false))
+                    ->setApiKey($apiKey)
                     ->setReferenceIdentifier($myParcelOrder->id . '-' . $myParcelOrder->order->id)
                     ->setPackageType($myParcelOrder->package_type)
                     ->setDeliveryType($myParcelOrder->delivery_type)

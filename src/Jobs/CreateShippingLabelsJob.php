@@ -3,6 +3,7 @@
 namespace Dashed\DashedEcommerceMyParcel\Jobs;
 
 use App\Models\User;
+use Filament\Actions\Action;
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
@@ -44,7 +45,7 @@ class CreateShippingLabelsJob implements ShouldQueue
             ->body('Labels zijn aangemaakt (' . count($response['orders']) . ' bestellingen)')
             ->persistent()
             ->actions([
-                \Filament\Notifications\Actions\Action::make('download')
+                Action::make('download')
                     ->label('Download labels')
                     ->button()
                     ->url(Storage::disk('public')->url($response['filePath']))

@@ -2,6 +2,7 @@
 
 namespace Dashed\DashedEcommerceMyParcel;
 
+use Closure;
 use Livewire\Livewire;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -35,42 +36,6 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
             $schedule = app(Schedule::class);
             $schedule->command(CheckMyParcelOrders::class)->everyFifteenMinutes();
         });
-
-        if (cms()->isCMSRoute()) {
-            if (MyParcelOrder::where('label_printed', 0)->count()) {
-                ecommerce()->buttonActions(
-                    'orders',
-                    array_merge(ecommerce()->buttonActions('orders'), [
-                        Action::make('downloadMyParcelLabels')
-                            ->button()
-                            ->label('Download MyParcel Labels (' . MyParcelOrder::where('label_printed', 0)->count() . ')')
-                            ->openUrlInNewTab()
-                            ->action(function () {
-                                CreateShippingLabelsJob::dispatch(auth()->user());
-
-                                Notification::make()
-                                    ->body('Labels worden aangemaakt, ze staan over een paar minuten klaar om te downloaden')
-                                    ->success()
-                                    ->send();
-                            }),
-                    ])
-                );
-            }
-        }
-
-        cms()->builder('builderBlockClasses', [
-            self::class => 'builderBlocks',
-        ]);
-    }
-
-    public static function builderBlocks(): void
-    {
-        cms()
-            ->builder('productGroupBlocks', [
-                Select::make('my-parcel-package-type')
-                    ->label('MyParcel pakket type')
-                    ->options(MyParcel::getPackageTypes()),
-            ]);
     }
 
     public function configurePackage(Package $package): void

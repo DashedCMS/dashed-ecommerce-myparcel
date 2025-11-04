@@ -2,14 +2,14 @@
 
 namespace Dashed\DashedEcommerceMyParcel;
 
-use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
-use Dashed\DashedEcommerceMyParcel\Jobs\CreateShippingLabelsJob;
-use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
+use Filament\Panel;
 use Filament\Actions\Action;
+use Filament\Contracts\Plugin;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
-use Filament\Panel;
-use Filament\Contracts\Plugin;
+use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
+use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
+use Dashed\DashedEcommerceMyParcel\Jobs\CreateShippingLabelsJob;
 use Dashed\DashedEcommerceMyParcel\Filament\Pages\Settings\MyParcelSettingsPage;
 
 class DashedEcommerceMyParcelPlugin implements Plugin
@@ -43,13 +43,13 @@ class DashedEcommerceMyParcelPlugin implements Plugin
             self::class => 'builderBlocks',
         ]);
 
-        if (MyParcelOrder::where('label_printed', 0)->count()) {
+        if (MyParcelOrder::where('label_printed', 0)->whereNotNull('shipment_id')->count()) {
             ecommerce()->buttonActions(
                 'orders',
                 array_merge(ecommerce()->buttonActions('orders'), [
                     Action::make('downloadMyParcelLabels')
                         ->button()
-                        ->label('Download MyParcel Labels (' . MyParcelOrder::where('label_printed', 0)->count() . ')')
+                        ->label('Download MyParcel Labels (' . MyParcelOrder::where('label_printed', 0)->whereNotNull('shipment_id')->count() . ')')
                         ->openUrlInNewTab()
                         ->action(function () {
                             CreateShippingLabelsJob::dispatch(auth()->user());

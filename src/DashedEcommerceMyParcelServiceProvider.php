@@ -2,19 +2,15 @@
 
 namespace Dashed\DashedEcommerceMyParcel;
 
-use Closure;
+use Dashed\DashedEcommerceMyParcel\Commands\CreateMyParcelConceptOrders;
+use Dashed\DashedEcommerceMyParcel\Commands\CreateMyParcelShipments;
 use Livewire\Livewire;
-use Filament\Actions\Action;
-use Filament\Forms\Components\Select;
 use Spatie\LaravelPackageTools\Package;
-use Filament\Notifications\Notification;
 use Illuminate\Console\Scheduling\Schedule;
 use Dashed\DashedEcommerceCore\Models\Order;
-use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
 use Dashed\DashedEcommerceMyParcel\Commands\CheckMyParcelOrders;
-use Dashed\DashedEcommerceMyParcel\Jobs\CreateShippingLabelsJob;
 use Dashed\DashedEcommerceMyParcel\Livewire\Orders\ShowMyParcelOrders;
 use Dashed\DashedEcommerceMyParcel\Livewire\Orders\ShowPushToMyParcelOrder;
 use Dashed\DashedEcommerceMyParcel\Filament\Pages\Settings\MyParcelSettingsPage;
@@ -34,7 +30,8 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
 
         $this->app->booted(function () {
             $schedule = app(Schedule::class);
-            $schedule->command(CheckMyParcelOrders::class)->everyFifteenMinutes();
+            $schedule->command(CreateMyParcelConceptOrders::class)->everyMinute()->withoutOverlapping();
+            $schedule->command(CheckMyParcelOrders::class)->everyFifteenMinutes()->withoutOverlapping();
         });
     }
 
@@ -49,6 +46,7 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
             ])
             ->hasCommands([
                 CheckMyParcelOrders::class,
+                CreateMyParcelConceptOrders::class,
             ])
             ->hasViews();
 

@@ -27,7 +27,7 @@ class MyParcel
 
     public static function apiKey(?string $siteId = null, $encoded = true): string
     {
-        if(!$siteId){
+        if (!$siteId) {
             $siteId = Sites::getActive();
         }
 
@@ -43,7 +43,7 @@ class MyParcel
 
     public static function connectOrderWithCarrier(Order $order)
     {
-        if (MyParcel::isConnected($order->site_id) && ! $order->myParcelOrders()->count()) {
+        if (MyParcel::isConnected($order->site_id) && !$order->myParcelOrders()->count()) {
             $packageTypeIds = [];
 
             foreach ($order->orderProducts as $orderProduct) {
@@ -64,7 +64,7 @@ class MyParcel
             $orderLog->tag = 'system.note.created';
             $orderLog->note = 'Bestelling klaargezet voor MyParcel';
             $orderLog->save();
-        } elseif (! MyParcel::isConnected($order->site_id)) {
+        } elseif (!MyParcel::isConnected($order->site_id)) {
             $orderLog = new OrderLog();
             $orderLog->order_id = $order->id;
             $orderLog->user_id = null;
@@ -76,7 +76,7 @@ class MyParcel
 
     public static function isConnected($siteId = null)
     {
-        if (! $siteId) {
+        if (!$siteId) {
             $siteId = Sites::getActive();
         }
 
@@ -94,7 +94,7 @@ class MyParcel
         }
     }
 
-    public static function createShipments()
+    public static function createConcepts()
     {
         $siteId = Sites::getActive();
         $apiKey = self::apiKey($siteId, encoded: false);
@@ -102,22 +102,22 @@ class MyParcel
         $consignments = (new MyParcelCollection())
             ->setUserAgents(['DashedCMS', '2.0']);
 
-        $myParcelOrders = MyParcelOrder::where('label_printed', 0)->get();
+        $myParcelOrders = MyParcelOrder::where('label_printed', 0)->whereNull('shipment_id')->get();
         $orders = [];
 
         foreach ($myParcelOrders as $key => $myParcelOrder) {
-            if($myParcelOrder->order->site_id !== $siteId){
+            if ($myParcelOrder->order->site_id !== $siteId) {
                 continue;
             }
 
-            if (! $myParcelOrder->carrier) {
+            if (!$myParcelOrder->carrier) {
                 $order = $myParcelOrder->order;
                 $myParcelOrder->delete();
                 self::connectOrderWithCarrier($order);
                 $myParcelOrder = $order->myParcelOrders()->first();
             }
 
-            if (! $myParcelOrder->carrier) {
+            if (!$myParcelOrder->carrier) {
                 continue;
             }
 
@@ -145,12 +145,61 @@ class MyParcel
         }
 
         $response = $consignments
-            ->setPdfOfLabels('a6');
+            ->createConcepts();
+//            ->setPdfOfLabels('a6');
 
         foreach ($response->getConsignments() as $shipment) {
             $myParcelOrder = MyParcelOrder::find(str($shipment->getReferenceIdentifier())->explode('-')->first());
             $myParcelOrder->shipment_id = $shipment->getConsignmentId();
-            //            $myParcelOrder->label_printed = 1;
+//            $myParcelOrder->track_and_trace = [
+//                [
+//                    $shipment->getBarcode() => $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode),
+//                ],
+//            ];
+//            $myParcelOrder->label_printed = 1;
+            $myParcelOrder->save();
+
+//            $myParcelOrder->order->addTrackAndTrace('my-parcel', $shipment->getCarrierName(), $shipment->getBarcode(), $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode));
+        }
+
+//        $pdf = $response->getLabelPdf();
+//
+//        $filePath = 'dashed/orders/my-parcel/labels-' . time() . '.pdf';
+//        Storage::disk('public')->put($filePath, $pdf);
+
+        return [
+//            'filePath' => $filePath,
+            'orders' => $orders,
+        ];
+    }
+
+    public static function createShipments()
+    {
+        $siteId = Sites::getActive();
+        $apiKey = self::apiKey($siteId, encoded: false);
+
+        $consignments = (new MyParcelCollection())
+            ->setUserAgents(['DashedCMS', '2.0']);
+
+        $myParcelOrders = MyParcelOrder::where('label_printed', 0)->whereNotNull('shipment_id')->get();
+        $shipmentIds = [];
+        $orders = [];
+
+        foreach ($myParcelOrders as $key => $myParcelOrder) {
+            if ($myParcelOrder->order->site_id !== $siteId) {
+                continue;
+            }
+
+            $shipmentIds[] = (int)$myParcelOrder->shipment_id;
+            $orders[] = $myParcelOrder->order;
+        }
+
+        $consignments = $consignments->addConsignmentByConsignmentIds($shipmentIds, $apiKey);
+        $response = $consignments
+            ->setPdfOfLabels('a6');
+
+        foreach ($response->getConsignments() as $shipment) {
+            $myParcelOrder = MyParcelOrder::find(str($shipment->getReferenceIdentifier())->explode('-')->first());
             $myParcelOrder->track_and_trace = [
                 [
                     $shipment->getBarcode() => $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode),
@@ -173,19 +222,19 @@ class MyParcel
         ];
     }
 
-    //    public static function getLabelsFromShipments(array $shipmentIds = [])
-    //    {
-    //        $response = Http::withHeaders([
-    //            'Accept' => 'application/json',
-    //            'Content-Type' => 'application/json',
-    //        ])
-    //            ->post('https://api.myparcel.com/api/v2/label?api_token=' . Customsetting::get('myparcel_api_key'), [
-    //                'shipments' => $shipmentIds,
-    //            ])
-    //            ->json();
-    //
-    //        return $response;
-    //    }
+    public static function getLabelsFromShipments(array $shipmentIds = [])
+    {
+        $response = Http::withHeaders([
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+        ])
+            ->post('https://api.myparcel.com/api/v2/label?api_token=' . Customsetting::get('myparcel_api_key'), [
+                'shipments' => $shipmentIds,
+            ])
+            ->json();
+
+        return $response;
+    }
 
     public static function getShipment(int|string $shipmentId, string $siteId)
     {

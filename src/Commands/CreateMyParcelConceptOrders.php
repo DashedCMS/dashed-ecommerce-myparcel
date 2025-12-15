@@ -3,7 +3,6 @@
 namespace Dashed\DashedEcommerceMyParcel\Commands;
 
 use Illuminate\Console\Command;
-use Dashed\DashedEcommerceCore\Models\Order;
 use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
 
 class CreateMyParcelConceptOrders extends Command
@@ -39,6 +38,6 @@ class CreateMyParcelConceptOrders extends Command
      */
     public function handle()
     {
-       MyParcel::createConcepts();
+        MyParcel::createConcepts();
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Dashed\DashedEcommerceMyParcel\Livewire\Orders;
 
+use Dashed\DashedEcommerceMyParcel\Jobs\CreateMyParcelConceptOrdersJob;
 use Livewire\Component;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -83,6 +84,8 @@ class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasAction
                         'delivery_type' => $data['delivery_type'],
                     ]);
                 }
+
+                CreateMyParcelConceptOrdersJob::dispatch()->onQueue('ecommerce');
 
                 Notification::make()
                     ->title('De bestelling is klaargezet voor MyParcel.')

@@ -27,7 +27,7 @@ class MyParcel
 
     public static function apiKey(?string $siteId = null, $encoded = true): string
     {
-        if (!$siteId) {
+        if (! $siteId) {
             $siteId = Sites::getActive();
         }
 
@@ -43,7 +43,7 @@ class MyParcel
 
     public static function connectOrderWithCarrier(Order $order)
     {
-        if (MyParcel::isConnected($order->site_id) && !$order->myParcelOrders()->count()) {
+        if (MyParcel::isConnected($order->site_id) && ! $order->myParcelOrders()->count()) {
             $packageTypeIds = [];
 
             foreach ($order->orderProducts as $orderProduct) {
@@ -64,7 +64,7 @@ class MyParcel
             $orderLog->tag = 'system.note.created';
             $orderLog->note = 'Bestelling klaargezet voor MyParcel';
             $orderLog->save();
-        } elseif (!MyParcel::isConnected($order->site_id)) {
+        } elseif (! MyParcel::isConnected($order->site_id)) {
             $orderLog = new OrderLog();
             $orderLog->order_id = $order->id;
             $orderLog->user_id = null;
@@ -76,7 +76,7 @@ class MyParcel
 
     public static function isConnected($siteId = null)
     {
-        if (!$siteId) {
+        if (! $siteId) {
             $siteId = Sites::getActive();
         }
 
@@ -110,14 +110,14 @@ class MyParcel
                 continue;
             }
 
-            if (!$myParcelOrder->carrier) {
+            if (! $myParcelOrder->carrier) {
                 $order = $myParcelOrder->order;
                 $myParcelOrder->delete();
                 self::connectOrderWithCarrier($order);
                 $myParcelOrder = $order->myParcelOrders()->first();
             }
 
-            if (!$myParcelOrder->carrier) {
+            if (! $myParcelOrder->carrier) {
                 continue;
             }
 
@@ -146,26 +146,26 @@ class MyParcel
 
         $response = $consignments
             ->createConcepts();
-//            ->setPdfOfLabels('a6');
+        //            ->setPdfOfLabels('a6');
 
         foreach ($response->getConsignments() as $shipment) {
             $myParcelOrder = MyParcelOrder::find(str($shipment->getReferenceIdentifier())->explode('-')->first());
             $myParcelOrder->shipment_id = $shipment->getConsignmentId();
-//            $myParcelOrder->track_and_trace = [
-//                [
-//                    $shipment->getBarcode() => $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode),
-//                ],
-//            ];
-//            $myParcelOrder->label_printed = 1;
+            //            $myParcelOrder->track_and_trace = [
+            //                [
+            //                    $shipment->getBarcode() => $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode),
+            //                ],
+            //            ];
+            //            $myParcelOrder->label_printed = 1;
             $myParcelOrder->save();
 
-//            $myParcelOrder->order->addTrackAndTrace('my-parcel', $shipment->getCarrierName(), $shipment->getBarcode(), $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode));
+            //            $myParcelOrder->order->addTrackAndTrace('my-parcel', $shipment->getCarrierName(), $shipment->getBarcode(), $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode));
         }
 
-//        $pdf = $response->getLabelPdf();
-//
-//        $filePath = 'dashed/orders/my-parcel/labels-' . time() . '.pdf';
-//        Storage::disk('public')->put($filePath, $pdf);
+        //        $pdf = $response->getLabelPdf();
+        //
+        //        $filePath = 'dashed/orders/my-parcel/labels-' . time() . '.pdf';
+        //        Storage::disk('public')->put($filePath, $pdf);
 
         return [
 //            'filePath' => $filePath,

@@ -26,7 +26,7 @@ class MarkOrderAsPushableListener
      */
     public function handle(OrderMarkedAsPaidEvent $event)
     {
-        if (Customsetting::get('my_parcel_automatically_push_orders', $event->order->site_id) && $event->order->street && $event->order->order_origin != 'pos' && $event->order->shippingMethod->sort != 'take_away') {
+        if (Customsetting::get('my_parcel_automatically_push_orders', $event->order->site_id) && $event->order->street && $event->order->order_origin != 'pos' && (!$event->order->shippingMethod || $event->order->shippingMethod->sort != 'take_away')) {
             MyParcel::connectOrderWithCarrier($event->order);
         }
     }

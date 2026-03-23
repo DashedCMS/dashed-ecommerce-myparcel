@@ -5,9 +5,9 @@ namespace Dashed\DashedEcommerceMyParcel\Controllers;
 use Illuminate\Support\Facades\Storage;
 use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
 use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
-use Dashed\DashedCore\Controllers\Frontend\FrontendController;
+use App\Http\Controllers\Controller;;
 
-class MyParcelController extends FrontendController
+class MyParcelController extends Controller
 {
     public function downloadLabels()
     {

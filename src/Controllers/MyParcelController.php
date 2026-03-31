@@ -2,10 +2,12 @@
 
 namespace Dashed\DashedEcommerceMyParcel\Controllers;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
 use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
 use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
-use App\Http\Controllers\Controller;;
+
+;
 
 class MyParcelController extends Controller
 {

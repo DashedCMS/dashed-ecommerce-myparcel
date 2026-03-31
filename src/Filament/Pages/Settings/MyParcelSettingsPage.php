@@ -17,10 +17,13 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Utilities\Get;
 use Dashed\DashedEcommerceCore\Classes\Countries;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierPostNL;
+use Dashed\DashedCore\Traits\HasSettingsPermission;
 use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
 
 class MyParcelSettingsPage extends Page
 {
+    use HasSettingsPermission;
+
     protected static bool $shouldRegisterNavigation = false;
     protected static ?string $title = 'MyParcel';
 

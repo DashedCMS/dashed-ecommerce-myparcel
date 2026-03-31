@@ -6,7 +6,6 @@ use Livewire\Livewire;
 use Spatie\LaravelPackageTools\Package;
 use Illuminate\Console\Scheduling\Schedule;
 use Dashed\DashedEcommerceCore\Models\Order;
-use Dashed\DashedCore\Support\MeasuresServiceProvider;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
 use Dashed\DashedEcommerceMyParcel\Commands\CheckMyParcelOrders;
@@ -17,12 +16,10 @@ use Dashed\DashedEcommerceMyParcel\Filament\Pages\Settings\MyParcelSettingsPage;
 
 class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
 {
-    use MeasuresServiceProvider;
     public static string $name = 'dashed-ecommerce-myparcel';
 
     public function bootingPackage()
     {
-        $this->logProviderMemory('bootingPackage:start');
         Livewire::component('show-push-to-my-parcel-order', ShowPushToMyParcelOrder::class);
         Livewire::component('show-my-parcel-orders', ShowMyParcelOrders::class);
 
@@ -35,12 +32,10 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
             $schedule->command(CreateMyParcelConceptOrders::class)->everyMinute()->withoutOverlapping();
             $schedule->command(CheckMyParcelOrders::class)->everyFifteenMinutes()->withoutOverlapping();
         });
-        $this->logProviderMemory('bootingPackage:end');
     }
 
     public function configurePackage(Package $package): void
     {
-        $this->logProviderMemory('configurePackage:start');
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
 
         $package
@@ -73,6 +68,5 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
         cms()->builder('plugins', [
             new DashedEcommerceMyParcelPlugin(),
         ]);
-        $this->logProviderMemory('configurePackage:end');
     }
 }

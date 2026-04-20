@@ -52,7 +52,7 @@ class DashedEcommerceMyParcelPlugin implements Plugin
                         ->label('Download MyParcel Labels (' . MyParcelOrder::where('label_printed', 0)->whereNotNull('shipment_id')->count() . ')')
                         ->openUrlInNewTab()
                         ->action(function () {
-                            CreateShippingLabelsJob::dispatch(auth()->user());
+                            CreateShippingLabelsJob::dispatch(auth()->user())->onQueue('ecommerce');
 
                             Notification::make()
                                 ->body('Labels worden aangemaakt, ze staan over een paar minuten klaar om te downloaden')

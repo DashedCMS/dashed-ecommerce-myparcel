@@ -55,6 +55,6 @@ class CreateShippingLabelsJob implements ShouldQueue
             ->sendToDatabase($this->user)
             ->send();
 
-        ExportSpecificPackingSlipsJob::dispatch($response['orders'], $this->user);
+        ExportSpecificPackingSlipsJob::dispatch($response['orders'], $this->user)->onQueue('ecommerce');
     }
 }

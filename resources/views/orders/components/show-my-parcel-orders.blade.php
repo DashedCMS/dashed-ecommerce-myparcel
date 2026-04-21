@@ -4,9 +4,13 @@
             <div class="flex items-start justify-between gap-4">
                 <div class="grid gap-2 space-y-3">
                     <div class="flex flex-wrap items-center gap-2">
-                        @if($myparcelOrder->shipment_id)
+                        @if($myparcelOrder->shipment_id && $myparcelOrder->label_printed)
                             <x-filament::badge color="success" icon="heroicon-m-check-circle">
-                                Verstuurd naar MyParcel
+                                Label gedownload
+                            </x-filament::badge>
+                        @elseif($myparcelOrder->shipment_id)
+                            <x-filament::badge color="info" icon="heroicon-m-arrow-down-tray">
+                                In wachtrij voor label download
                             </x-filament::badge>
                         @elseif($myparcelOrder->error)
                             <x-filament::badge color="danger" icon="heroicon-m-x-circle">
@@ -38,13 +42,31 @@
                     </div>
                 </div>
 
-                <x-filament::icon-button
-                    color="danger"
-                    icon="heroicon-m-trash"
-                    size="sm"
-                    tooltip="Verwijder label"
-                    wire:click="confirmDeleteMyParcelOrder({{ $myparcelOrder->id }})"
-                />
+                <div class="flex items-center gap-1">
+                    @php
+                        $requeueTooltip = match(true) {
+                            $myparcelOrder->shipment_id && $myparcelOrder->label_printed => 'Opnieuw in wachtrij zetten',
+                            $myparcelOrder->shipment_id => 'Staat al in wachtrij',
+                            default => 'Concept nu aanmaken bij MyParcel',
+                        };
+                    @endphp
+
+                    <x-filament::icon-button
+                        color="warning"
+                        icon="heroicon-m-arrow-path"
+                        size="sm"
+                        :tooltip="$requeueTooltip"
+                        wire:click="requeueMyParcelOrder({{ $myparcelOrder->id }})"
+                    />
+
+                    <x-filament::icon-button
+                        color="danger"
+                        icon="heroicon-m-trash"
+                        size="sm"
+                        tooltip="Verwijder label"
+                        wire:click="confirmDeleteMyParcelOrder({{ $myparcelOrder->id }})"
+                    />
+                </div>
             </div>
         </div>
     @empty

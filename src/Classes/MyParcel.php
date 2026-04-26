@@ -3,8 +3,11 @@
 namespace Dashed\DashedEcommerceMyParcel\Classes;
 
 use Exception;
+use Throwable;
+use Dashed\DashedCore\Classes\Mails;
 use Dashed\DashedCore\Classes\Sites;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Dashed\DashedCore\Models\Customsetting;
 use Dashed\DashedEcommerceCore\Models\Order;
@@ -99,13 +102,11 @@ class MyParcel
         $siteId = Sites::getActive();
         $apiKey = self::apiKey($siteId, encoded: false);
 
-        $consignments = (new MyParcelCollection())
-            ->setUserAgents(['DashedCMS', '2.0']);
-
         $myParcelOrders = MyParcelOrder::where('label_printed', 0)->whereNull('shipment_id')->get();
         $orders = [];
+        $failures = [];
 
-        foreach ($myParcelOrders as $key => $myParcelOrder) {
+        foreach ($myParcelOrders as $myParcelOrder) {
             if ($myParcelOrder->order->site_id !== $siteId) {
                 continue;
             }
@@ -136,40 +137,53 @@ class MyParcel
                     ->setPhone($myParcelOrder->order->phone_number)
                     ->setLabelDescription('Bestelling ' . $myParcelOrder->order->invoice_id);
 
-                $consignments->addConsignment($consigment);
+                $consignments = (new MyParcelCollection())
+                    ->setUserAgents(['DashedCMS', '2.0'])
+                    ->addConsignment($consigment)
+                    ->createConcepts();
+
+                foreach ($consignments->getConsignments() as $shipment) {
+                    $myParcelOrder->shipment_id = $shipment->getConsignmentId();
+                    $myParcelOrder->error = null;
+                    $myParcelOrder->save();
+                }
+
                 $orders[] = $myParcelOrder->order;
-            } catch (Exception $e) {
+            } catch (Throwable $e) {
                 $myParcelOrder->error = $e->getMessage();
                 $myParcelOrder->save();
+
+                $failures[] = [
+                    'invoice_id' => $myParcelOrder->order->invoice_id ?? $myParcelOrder->order_id,
+                    'message' => $e->getMessage(),
+                ];
+
+                Log::warning('MyParcel concept creation failed', [
+                    'my_parcel_order_id' => $myParcelOrder->id,
+                    'order_id' => $myParcelOrder->order_id,
+                    'invoice_id' => $myParcelOrder->order->invoice_id ?? null,
+                    'message' => $e->getMessage(),
+                ]);
             }
         }
 
-        $response = $consignments
-            ->createConcepts();
-        //            ->setPdfOfLabels('a6');
+        if (! empty($failures)) {
+            $lines = array_map(
+                fn ($failure) => "Bestelling {$failure['invoice_id']}: {$failure['message']}",
+                $failures
+            );
 
-        foreach ($response->getConsignments() as $shipment) {
-            $myParcelOrder = MyParcelOrder::find(str($shipment->getReferenceIdentifier())->explode('-')->first());
-            $myParcelOrder->shipment_id = $shipment->getConsignmentId();
-            //            $myParcelOrder->track_and_trace = [
-            //                [
-            //                    $shipment->getBarcode() => $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode),
-            //                ],
-            //            ];
-            //            $myParcelOrder->label_printed = 1;
-            $myParcelOrder->save();
-
-            //            $myParcelOrder->order->addTrackAndTrace('my-parcel', $shipment->getCarrierName(), $shipment->getBarcode(), $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode));
+            Mails::sendNotificationToAdmins(
+                "MyParcel kon de volgende bestellingen niet als concept aanmaken. Corrigeer de gegevens en probeer opnieuw:\n\n" . implode("\n", $lines),
+                count($failures) === 1
+                    ? "MyParcel sync mislukt voor bestelling {$failures[0]['invoice_id']}"
+                    : 'MyParcel sync mislukt voor ' . count($failures) . ' bestellingen'
+            );
         }
 
-        //        $pdf = $response->getLabelPdf();
-        //
-        //        $filePath = 'dashed/orders/my-parcel/labels-' . time() . '.pdf';
-        //        Storage::disk('public')->put($filePath, $pdf);
-
         return [
-//            'filePath' => $filePath,
             'orders' => $orders,
+            'failures' => $failures,
         ];
     }
 

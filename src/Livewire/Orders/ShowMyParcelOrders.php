@@ -61,7 +61,7 @@ class ShowMyParcelOrders extends Component
 
             Notification::make()
                 ->title('Concept wordt aangemaakt bij MyParcel')
-                ->body('De job is gestart — ververs deze pagina na een paar seconden om de status bij te werken.')
+                ->body('De job is gestart - ververs deze pagina na een paar seconden om de status bij te werken.')
                 ->success()
                 ->send();
 

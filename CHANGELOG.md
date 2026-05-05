@@ -2,6 +2,11 @@
 
 All notable changes to `dashed-ecommerce-myparcel` will be documented in this file.
 
+## v4.1.1 - 2026-05-05
+
+### Added
+- Knop "Verzendstatussen ophalen bij MyParcel" in de toolbar van de bestellingen-lijst. Triggert handmatig de bestaande `dashed:check-my-parcel-orders` command voor alle niet-afgehandelde bestellingen via de queue, zodat de admin niet hoeft te wachten op de volgende kwartier-run van de scheduler. Vraagt om bevestiging voordat de sync start.
+
 ## v4.1.0 - 2026-05-05
 
 ### Added

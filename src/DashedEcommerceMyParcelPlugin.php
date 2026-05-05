@@ -74,10 +74,11 @@ class DashedEcommerceMyParcelPlugin implements Plugin
             'orders',
             array_merge(ecommerce()->buttonActions('orders'), [
                 Action::make('syncMyParcelStatuses')
-                    ->button()
+                    ->iconButton()
                     ->color('gray')
                     ->icon('heroicon-o-arrow-path')
                     ->label('Verzendstatussen ophalen bij MyParcel')
+                    ->tooltip('Verzendstatussen ophalen bij MyParcel')
                     ->requiresConfirmation()
                     ->modalHeading('Verzendstatussen synchroniseren')
                     ->modalDescription('Hiermee wordt voor elke niet-afgehandelde bestelling de huidige status bij MyParcel opgehaald en bijgewerkt. De sync draait in de achtergrond.')

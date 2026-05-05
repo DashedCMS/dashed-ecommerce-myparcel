@@ -2,6 +2,11 @@
 
 All notable changes to `dashed-ecommerce-myparcel` will be documented in this file.
 
+## v4.1.2 - 2026-05-05
+
+### Changed
+- "Verzendstatussen ophalen bij MyParcel"-knop in de bestellingen-toolbar is nu een compacte icon-button met tooltip in plaats van een grote primaire knop, zodat hij minder visueel gewicht krijgt naast de andere acties.
+
 ## v4.1.1 - 2026-05-05
 
 ### Added

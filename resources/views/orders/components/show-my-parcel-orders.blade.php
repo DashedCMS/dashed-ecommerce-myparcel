@@ -4,6 +4,11 @@
             <div class="flex items-start justify-between gap-4">
                 <div class="grid gap-2 space-y-3">
                     <div class="flex flex-wrap items-center gap-2">
+                        @if($myparcelOrder->is_return)
+                            <x-filament::badge color="warning" icon="heroicon-m-arrow-uturn-left">
+                                Retourlabel
+                            </x-filament::badge>
+                        @endif
                         @if($myparcelOrder->shipment_id && $myparcelOrder->label_printed)
                             <x-filament::badge color="success" icon="heroicon-m-check-circle">
                                 Label gedownload
@@ -19,6 +24,11 @@
                         @else
                             <x-filament::badge color="warning" icon="heroicon-m-clock">
                                 Klaargezet
+                            </x-filament::badge>
+                        @endif
+                        @if($myparcelOrder->is_return && $myparcelOrder->is_label_email_sent)
+                            <x-filament::badge color="success" icon="heroicon-m-envelope">
+                                Mail verstuurd
                             </x-filament::badge>
                         @endif
                     </div>
@@ -51,13 +61,27 @@
                         };
                     @endphp
 
-                    <x-filament::icon-button
-                        color="warning"
-                        icon="heroicon-m-arrow-path"
-                        size="sm"
-                        :tooltip="$requeueTooltip"
-                        wire:click="requeueMyParcelOrder({{ $myparcelOrder->id }})"
-                    />
+                    @if($myparcelOrder->label_pdf_path)
+                        <x-filament::icon-button
+                            color="success"
+                            icon="heroicon-m-arrow-down-tray"
+                            size="sm"
+                            tooltip="Download label PDF"
+                            href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($myparcelOrder->label_pdf_path) }}"
+                            target="_blank"
+                            tag="a"
+                        />
+                    @endif
+
+                    @unless($myparcelOrder->is_return)
+                        <x-filament::icon-button
+                            color="warning"
+                            icon="heroicon-m-arrow-path"
+                            size="sm"
+                            :tooltip="$requeueTooltip"
+                            wire:click="requeueMyParcelOrder({{ $myparcelOrder->id }})"
+                        />
+                    @endunless
 
                     <x-filament::icon-button
                         color="danger"

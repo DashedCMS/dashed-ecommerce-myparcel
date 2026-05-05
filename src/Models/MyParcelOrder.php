@@ -22,11 +22,21 @@ class MyParcelOrder extends Model
         'label_url',
         'track_and_trace',
         'label_printed',
+        'carrier',
+        'package_type',
+        'delivery_type',
+        'error',
+        'is_return',
+        'is_label_email_sent',
+        'personal_note',
+        'label_pdf_path',
     ];
 
     protected $casts = [
         'track_and_trace' => 'array',
         'label_printed' => 'boolean',
+        'is_return' => 'boolean',
+        'is_label_email_sent' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

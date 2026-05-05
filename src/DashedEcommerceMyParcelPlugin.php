@@ -10,6 +10,8 @@ use Filament\Notifications\Notification;
 use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
 use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
 use Dashed\DashedEcommerceMyParcel\Jobs\CreateShippingLabelsJob;
+use Dashed\DashedEcommerceMyParcel\Filament\Actions\CreateMyParcelLabelAction;
+use Dashed\DashedEcommerceMyParcel\Filament\Actions\CreateMyParcelReturnLabelAction;
 use Dashed\DashedEcommerceMyParcel\Filament\Pages\Settings\MyParcelSettingsPage;
 
 class DashedEcommerceMyParcelPlugin implements Plugin
@@ -62,5 +64,16 @@ class DashedEcommerceMyParcelPlugin implements Plugin
                 ])
             );
         }
+
+        // Header-actions op de ViewOrder pagina: één voor het direct aanmaken
+        // van een verzendlabel voor deze bestelling, één voor het aanmaken
+        // van een retourlabel.
+        ecommerce()->buttonActions(
+            'order',
+            array_merge(ecommerce()->buttonActions('order'), [
+                CreateMyParcelLabelAction::make(),
+                CreateMyParcelReturnLabelAction::make(),
+            ])
+        );
     }
 }

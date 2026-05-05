@@ -236,6 +236,156 @@ class MyParcel
         ];
     }
 
+    /**
+     * Maakt voor één MyParcelOrder een concept aan bij MyParcel en haalt
+     * direct het label PDF op. De PDF wordt opgeslagen in de public disk
+     * en het pad wordt teruggegeven samen met track-en-trace data.
+     */
+    public static function createConceptAndLabelForOrder(MyParcelOrder $myParcelOrder): array
+    {
+        $apiKey = self::apiKey($myParcelOrder->order->site_id, encoded: false);
+
+        if (! $myParcelOrder->carrier) {
+            throw new Exception('Geen vervoerder ingesteld op deze MyParcel order.');
+        }
+
+        $consigment = (ConsignmentFactory::createByCarrierId(app(app($myParcelOrder->carrier)::CONSIGNMENT)->getCarrierId()))
+            ->setApiKey($apiKey)
+            ->setReferenceIdentifier($myParcelOrder->id . '-' . $myParcelOrder->order->id)
+            ->setPackageType($myParcelOrder->package_type)
+            ->setDeliveryType($myParcelOrder->delivery_type)
+            ->setCountry($myParcelOrder->order->countryIsoCode)
+            ->setPerson($myParcelOrder->order->name)
+            ->setFullStreet($myParcelOrder->order->street . ' ' . $myParcelOrder->order->house_nr)
+            ->setPostalCode(trim($myParcelOrder->order->zip_code))
+            ->setCity($myParcelOrder->order->city)
+            ->setEmail($myParcelOrder->order->email)
+            ->setPhone($myParcelOrder->order->phone_number)
+            ->setLabelDescription('Bestelling ' . $myParcelOrder->order->invoice_id);
+
+        $consignments = (new MyParcelCollection())
+            ->setUserAgents(['DashedCMS', '2.0'])
+            ->addConsignment($consigment)
+            ->setPdfOfLabels('a6');
+
+        foreach ($consignments->getConsignments() as $shipment) {
+            $myParcelOrder->shipment_id = $shipment->getConsignmentId();
+            $myParcelOrder->error = null;
+            $myParcelOrder->track_and_trace = [
+                [
+                    $shipment->getBarcode() => $shipment->getBarcodeUrl(
+                        $shipment->getBarcode(),
+                        $myParcelOrder->order->zip_code,
+                        $myParcelOrder->order->countryIsoCode
+                    ),
+                ],
+            ];
+            $myParcelOrder->label_printed = 1;
+            $myParcelOrder->save();
+
+            $myParcelOrder->order->addTrackAndTrace(
+                'my-parcel',
+                $shipment->getCarrierName(),
+                $shipment->getBarcode(),
+                $shipment->getBarcodeUrl(
+                    $shipment->getBarcode(),
+                    $myParcelOrder->order->zip_code,
+                    $myParcelOrder->order->countryIsoCode
+                )
+            );
+        }
+
+        $pdf = $consignments->getLabelPdf();
+
+        $filePath = 'dashed/orders/my-parcel/label-' . $myParcelOrder->order->invoice_id . '-' . time() . '.pdf';
+        Storage::disk('public')->put($filePath, $pdf);
+
+        $myParcelOrder->label_pdf_path = $filePath;
+        $myParcelOrder->save();
+
+        return [
+            'filePath' => $filePath,
+            'pdf' => $pdf,
+            'myParcelOrder' => $myParcelOrder,
+        ];
+    }
+
+    /**
+     * Maakt een retour-zending aan bij MyParcel voor één order. Dit gebruikt
+     * de unrelated-return endpoint via createConcepts(asUnrelatedReturn: true)
+     * van de SDK, omdat we geen parent-zending hebben (de oorspronkelijke
+     * bestelling is al uitgegaan en de klant moet vanuit huis terugsturen).
+     * Het label wordt direct opgehaald, opgeslagen en teruggegeven.
+     */
+    public static function createReturnLabelForOrder(MyParcelOrder $myParcelOrder): array
+    {
+        $apiKey = self::apiKey($myParcelOrder->order->site_id, encoded: false);
+
+        if (! $myParcelOrder->carrier) {
+            throw new Exception('Geen vervoerder ingesteld op deze MyParcel order.');
+        }
+
+        $consigment = (ConsignmentFactory::createByCarrierId(app(app($myParcelOrder->carrier)::CONSIGNMENT)->getCarrierId()))
+            ->setApiKey($apiKey)
+            ->setReferenceIdentifier($myParcelOrder->id . '-' . $myParcelOrder->order->id . '-return')
+            ->setPackageType($myParcelOrder->package_type)
+            ->setDeliveryType($myParcelOrder->delivery_type)
+            ->setCountry($myParcelOrder->order->countryIsoCode)
+            ->setPerson($myParcelOrder->order->name)
+            ->setFullStreet($myParcelOrder->order->street . ' ' . $myParcelOrder->order->house_nr)
+            ->setPostalCode(trim($myParcelOrder->order->zip_code))
+            ->setCity($myParcelOrder->order->city)
+            ->setEmail($myParcelOrder->order->email)
+            ->setPhone($myParcelOrder->order->phone_number)
+            ->setLabelDescription('Retour bestelling ' . $myParcelOrder->order->invoice_id);
+
+        $consignments = (new MyParcelCollection())
+            ->setUserAgents(['DashedCMS', '2.0'])
+            ->addConsignment($consigment);
+
+        // createConcepts(true) gebruikt de unrelated-return endpoint van MyParcel.
+        // Vervolgens halen we het label op met setPdfOfLabels.
+        $consignments->createConcepts(true);
+        $consignments->setLabelFormat('a6');
+        $consignments->setLatestData();
+
+        // Haal het PDF label op via setPdfOfLabels (zonder createConcepts opnieuw,
+        // de concepten staan er al). setPdfOfLabels roept intern createConcepts
+        // aan, maar omdat alle items al een consignment_id hebben is dat een no-op.
+        $consignments->setPdfOfLabels('a6');
+
+        foreach ($consignments->getConsignments() as $shipment) {
+            $myParcelOrder->shipment_id = $shipment->getConsignmentId();
+            $myParcelOrder->error = null;
+            $myParcelOrder->is_return = true;
+            $myParcelOrder->track_and_trace = [
+                [
+                    $shipment->getBarcode() => $shipment->getBarcodeUrl(
+                        $shipment->getBarcode(),
+                        $myParcelOrder->order->zip_code,
+                        $myParcelOrder->order->countryIsoCode
+                    ),
+                ],
+            ];
+            $myParcelOrder->label_printed = 1;
+            $myParcelOrder->save();
+        }
+
+        $pdf = $consignments->getLabelPdf();
+
+        $filePath = 'dashed/orders/my-parcel/return-label-' . $myParcelOrder->order->invoice_id . '-' . time() . '.pdf';
+        Storage::disk('public')->put($filePath, $pdf);
+
+        $myParcelOrder->label_pdf_path = $filePath;
+        $myParcelOrder->save();
+
+        return [
+            'filePath' => $filePath,
+            'pdf' => $pdf,
+            'myParcelOrder' => $myParcelOrder,
+        ];
+    }
+
     public static function getLabelsFromShipments(array $shipmentIds = [])
     {
         $response = Http::withHeaders([

@@ -12,6 +12,7 @@ use Dashed\DashedEcommerceMyParcel\Commands\CheckMyParcelOrders;
 use Dashed\DashedEcommerceMyParcel\Livewire\Orders\ShowMyParcelOrders;
 use Dashed\DashedEcommerceMyParcel\Commands\CreateMyParcelConceptOrders;
 use Dashed\DashedEcommerceMyParcel\Livewire\Orders\ShowPushToMyParcelOrder;
+use Dashed\DashedEcommerceMyParcel\Livewire\Orders\ShowCreateMyParcelReturnLabelOrder;
 use Dashed\DashedEcommerceMyParcel\Filament\Pages\Settings\MyParcelSettingsPage;
 
 class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
@@ -21,6 +22,7 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
     public function bootingPackage()
     {
         Livewire::component('show-push-to-my-parcel-order', ShowPushToMyParcelOrder::class);
+        Livewire::component('show-create-my-parcel-return-label-order', ShowCreateMyParcelReturnLabelOrder::class);
         Livewire::component('show-my-parcel-orders', ShowMyParcelOrders::class);
 
         Order::addDynamicRelation('myParcelOrders', function (Order $model) {
@@ -101,6 +103,10 @@ MARKDOWN,
             array_merge(ecommerce()->widgets('orders'), [
                 'show-push-to-my-parcel-order' => [
                     'name' => 'show-push-to-my-parcel-order',
+                    'width' => 'sidebar',
+                ],
+                'show-create-my-parcel-return-label-order' => [
+                    'name' => 'show-create-my-parcel-return-label-order',
                     'width' => 'sidebar',
                 ],
                 'show-my-parcel-orders' => [

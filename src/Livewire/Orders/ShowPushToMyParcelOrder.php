@@ -2,9 +2,11 @@
 
 namespace Dashed\DashedEcommerceMyParcel\Livewire\Orders;
 
+use Throwable;
 use Livewire\Component;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
+use Illuminate\Support\Facades\Storage;
 use Filament\Notifications\Notification;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Schemas\Contracts\HasSchemas;
@@ -14,7 +16,6 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierPostNL;
 use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
-use Dashed\DashedEcommerceMyParcel\Jobs\CreateMyParcelConceptOrdersJob;
 
 class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasActions
 {
@@ -36,8 +37,9 @@ class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasAction
     public function action(): Action
     {
         return Action::make('action')
-            ->label('Verstuur naar MyParcel')
+            ->label('Verzendlabel aanmaken')
             ->color('primary')
+            ->icon('heroicon-o-document-arrow-down')
             ->fillForm(function () {
                 $data = [];
 
@@ -70,27 +72,49 @@ class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasAction
             ->action(function ($data) {
                 $this->validate();
 
-                $myParcelOrder = $this->order->myParcelOrders()->where('label_printed', 0)->first();
+                $myParcelOrder = $this->order->myParcelOrders()
+                    ->where('label_printed', 0)
+                    ->where('is_return', false)
+                    ->first();
+
                 if (! $myParcelOrder) {
-                    $this->order->myParcelOrders()->create([
+                    $myParcelOrder = $this->order->myParcelOrders()->create([
                         'carrier' => $data['carrier'],
                         'package_type' => $data['package_type'],
                         'delivery_type' => $data['delivery_type'],
+                        'is_return' => false,
                     ]);
                 } else {
                     $myParcelOrder->update([
                         'carrier' => $data['carrier'],
                         'package_type' => $data['package_type'],
                         'delivery_type' => $data['delivery_type'],
+                        'is_return' => false,
                     ]);
                 }
 
-                CreateMyParcelConceptOrdersJob::dispatch()->onQueue('ecommerce');
+                try {
+                    $result = MyParcel::createConceptAndLabelForOrder($myParcelOrder);
+                } catch (Throwable $e) {
+                    $myParcelOrder->error = $e->getMessage();
+                    $myParcelOrder->save();
+
+                    Notification::make()
+                        ->title('Aanmaken van verzendlabel mislukt')
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
+
+                    return null;
+                }
 
                 Notification::make()
-                    ->title('De bestelling is klaargezet voor MyParcel.')
+                    ->title('Verzendlabel aangemaakt')
+                    ->body('Het label staat klaar om te downloaden.')
                     ->success()
                     ->send();
+
+                return redirect()->away(Storage::disk('public')->url($result['filePath']));
             });
     }
 }

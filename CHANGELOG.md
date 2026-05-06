@@ -2,6 +2,15 @@
 
 All notable changes to `dashed-ecommerce-myparcel` will be documented in this file.
 
+## v4.2.0 - 2026-05-06
+
+### Changed
+- **Verzend- en retourlabel-knoppen verplaatst naar de sidebar van de bestel-detailpagina** in plaats van de header-actions bovenaan.
+  - De sidebar-knop "Verstuur naar MyParcel" is hernoemd naar **"Verzendlabel aanmaken"** en gebruikt nu de synchrone `MyParcel::createConceptAndLabelForOrder()`-flow (was: dispatchen van een queued bulk-job). Voordeel: het label staat na bevestiging direct klaar om te downloaden, en `MyParcelOrder::label_pdf_path` wordt per order opgeslagen zodat de download-knop in de labels-lijst werkt.
+  - **Nieuwe sidebar-Livewire** `show-create-my-parcel-return-label-order` met een eigen knop "Retourlabel aanmaken" die de retourlabel-flow afhandelt (zelfde modal-form als voorheen: vervoerder, pakket-/verzendtype, mail-klant-toggle, persoonlijke notitie). Vervangt de oude header-action.
+  - De header-actions `CreateMyParcelLabelAction` en `CreateMyParcelReturnLabelAction` zijn verwijderd.
+- De PDF-download in de labels-lijst (`show-my-parcel-orders` blade) toont al een download-icoon wanneer `label_pdf_path` is gezet; alle nieuwe labels die via deze sidebar-flows worden aangemaakt worden per order op disk opgeslagen.
+
 ## v4.1.2 - 2026-05-05
 
 ### Changed

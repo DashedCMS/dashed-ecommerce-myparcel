@@ -110,11 +110,15 @@ class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasAction
 
                 Notification::make()
                     ->title('Verzendlabel aangemaakt')
-                    ->body('Het label staat klaar om te downloaden.')
+                    ->body('Het label staat klaar in de lijst hieronder en kan via de download-knop opgehaald worden.')
                     ->success()
                     ->send();
 
-                return redirect()->away(Storage::disk('public')->url($result['filePath']));
+                // Refresh de pagina zodat het zojuist aangemaakte label
+                // direct in de lijst eronder verschijnt met de download-knop.
+                $this->dispatch('$refresh');
+
+                return null;
             });
     }
 }

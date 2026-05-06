@@ -2,6 +2,12 @@
 
 All notable changes to `dashed-ecommerce-myparcel` will be documented in this file.
 
+## v4.2.1 - 2026-05-06
+
+### Fixed
+- **Retourlabel-knop deed niks.** De action in `ShowCreateMyParcelReturnLabelOrder` was geregistreerd als `Action::make('createMyParcelReturnLabel')` terwijl de Livewire-method `action()` heet. Filament's HasActions resolved actie-naam tegen method-naam; de mismatch zorgde dat de mount-flow stilzwijgend faalde. Action-naam hernoemd naar `'action'` zodat hij matcht (zelfde patroon als ShowPushToMyParcelOrder).
+- **Verzendlabel aanmaken redirectte naar de PDF**, terwijl de admin gewoon op de detail-pagina wil blijven zodat het label in de lijst eronder verschijnt en via de download-knop opgehaald kan worden. Vervangen door een `$this->dispatch('$refresh')` zodat de pagina ververst en de download-knop in de labels-lijst direct beschikbaar is.
+
 ## v4.2.0 - 2026-05-06
 
 ### Changed

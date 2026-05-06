@@ -44,7 +44,7 @@ class ShowCreateMyParcelReturnLabelOrder extends Component implements HasSchemas
 
     public function action(): Action
     {
-        return Action::make('createMyParcelReturnLabel')
+        return Action::make('action')
             ->label('Retourlabel aanmaken')
             ->color('warning')
             ->icon('heroicon-o-arrow-uturn-left')

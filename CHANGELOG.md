@@ -2,6 +2,11 @@
 
 All notable changes to `dashed-ecommerce-myparcel` will be documented in this file.
 
+## v4.3.0 - 2026-05-07
+
+### Added
+- **Bijdrage aan de admin samenvatting-mails (framework uit dashed-core v4.5.0).** Nieuwe `MyParcelSummaryContributor` onder `Services\Summary\`, automatisch geregistreerd via `cms()->builder('summaryContributors', ...)` in de boot van de package. De contributor levert een sectie aan voor de periodieke samenvatting-mail (dagelijks / wekelijks / maandelijks) met drie stats: aantal aangemaakte verzendlabels, aantal aangemaakte retourlabels en aantal retourlabels die naar de klant zijn gemaild. Filtert op `updated_at` zodat alleen labels meetellen die in de periode daadwerkelijk zijn afgedrukt of gemaild. De sectie wordt overgeslagen als alle drie de stats nul zijn, zodat admins geen muur van nullen ontvangen. Standaard frequentie staat op `weekly`.
+
 ## v4.2.1 - 2026-05-06
 
 ### Fixed

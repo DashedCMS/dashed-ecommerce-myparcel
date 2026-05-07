@@ -119,5 +119,10 @@ MARKDOWN,
         cms()->builder('plugins', [
             new DashedEcommerceMyParcelPlugin(),
         ]);
+
+        cms()->builder('summaryContributors', array_merge(
+            cms()->builder('summaryContributors') ?? [],
+            [\Dashed\DashedEcommerceMyParcel\Services\Summary\MyParcelSummaryContributor::class],
+        ));
     }
 }

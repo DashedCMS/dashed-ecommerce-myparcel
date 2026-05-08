@@ -2,7 +2,7 @@
 
 All notable changes to `dashed-ecommerce-myparcel` will be documented in this file.
 
-## v4.3.2 - 2026-05-08
+## v4.3.3 - 2026-05-08
 
 ### Fixed
 - `MyParcel::createConcepts()` slaat nu MyParcelOrders met een al-gezette `error` over. Voorheen probeerde de cron-job elke minuut dezelfde order opnieuw bij MyParcel aan te bieden, kreeg dezelfde fout terug en stuurde elke keer een notificatie-mail naar de admins. Eén mail per falende order is genoeg; admin's "Opnieuw in wachtrij zetten"-actie clearet de error en triggert een nieuwe poging.

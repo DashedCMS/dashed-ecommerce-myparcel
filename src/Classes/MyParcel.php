@@ -102,7 +102,15 @@ class MyParcel
         $siteId = Sites::getActive();
         $apiKey = self::apiKey($siteId, encoded: false);
 
-        $myParcelOrders = MyParcelOrder::where('label_printed', 0)->whereNull('shipment_id')->get();
+        // Sla orders met een al-gezette error over: dezelfde input geeft
+        // dezelfde API-fout, dus elke minuut opnieuw proberen levert geen
+        // nieuwe info en zorgt voor mail-spam naar de admins. De "Opnieuw
+        // in wachtrij zetten"-actie op de Filament-page zet error op null,
+        // waarna deze cron-run 'm weer oppakt.
+        $myParcelOrders = MyParcelOrder::where('label_printed', 0)
+            ->whereNull('shipment_id')
+            ->whereNull('error')
+            ->get();
         $orders = [];
         $failures = [];
 

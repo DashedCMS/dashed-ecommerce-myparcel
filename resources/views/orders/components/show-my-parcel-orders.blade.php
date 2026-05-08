@@ -67,9 +67,7 @@
                             icon="heroicon-m-arrow-down-tray"
                             size="sm"
                             tooltip="Download label PDF"
-                            href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($myparcelOrder->label_pdf_path) }}"
-                            target="_blank"
-                            tag="a"
+                            wire:click="downloadLabel({{ $myparcelOrder->id }})"
                         />
                     @endif
 

@@ -2,6 +2,12 @@
 
 All notable changes to `dashed-ecommerce-myparcel` will be documented in this file.
 
+## v4.3.1 - 2026-05-08
+
+### Fixed
+- `MyParcel::createConceptAndLabelForOrder()` en `createReturnLabelForOrder()` zetten `label_printed` niet meer automatisch op `1` bij het aanmaken van het label. Voorheen kreeg de admin direct de "Label gedownload" badge te zien terwijl het PDF nog niet daadwerkelijk was opgehaald, waardoor het label ook niet meer in de bulk-download teller stond.
+- Per-order download-knop in `show-my-parcel-orders.blade.php` werkt nu via `wire:click="downloadLabel(...)"` op `ShowMyParcelOrders` Livewire-component. De action checkt of het PDF bestaat, markeert `label_printed = 1`, en streamt het PDF terug. Voorheen was de knop een directe `<a href>` naar de public storage URL waardoor de "gedownload"-status niet werd bijgewerkt.
+
 ## v4.3.0 - 2026-05-07
 
 ### Added

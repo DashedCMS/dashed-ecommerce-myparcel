@@ -4,10 +4,10 @@ namespace Dashed\DashedEcommerceMyParcel\Classes;
 
 use Exception;
 use Throwable;
+use Illuminate\Support\Facades\Log;
 use Dashed\DashedCore\Classes\Mails;
 use Dashed\DashedCore\Classes\Sites;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Dashed\DashedCore\Models\Customsetting;
 use Dashed\DashedEcommerceCore\Models\Order;
@@ -280,7 +280,10 @@ class MyParcel
                     ),
                 ],
             ];
-            $myParcelOrder->label_printed = 1;
+            // label_printed bewust 0 laten: pas wanneer de admin daadwerkelijk
+            // op de download-knop klikt (in show-my-parcel-orders.blade.php)
+            // zetten we 'm op 1. Dit voorkomt dat de "Label gedownload"-badge
+            // verschijnt voordat het PDF echt is opgehaald.
             $myParcelOrder->save();
 
             $myParcelOrder->order->addTrackAndTrace(
@@ -367,7 +370,9 @@ class MyParcel
                     ),
                 ],
             ];
-            $myParcelOrder->label_printed = 1;
+            // label_printed bewust 0 laten: download wordt pas geregistreerd
+            // wanneer de admin op de download-knop klikt (of de retour-mail
+            // wordt verstuurd).
             $myParcelOrder->save();
         }
 

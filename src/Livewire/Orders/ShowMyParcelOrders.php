@@ -2,11 +2,13 @@
 
 namespace Dashed\DashedEcommerceMyParcel\Livewire\Orders;
 
-use Livewire\Component;
-use Illuminate\Support\Facades\DB;
-use Filament\Notifications\Notification;
 use Dashed\DashedEcommerceCore\Models\OrderTrackAndTrace;
 use Dashed\DashedEcommerceMyParcel\Jobs\CreateMyParcelConceptOrdersJob;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Component;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ShowMyParcelOrders extends Component
 {
@@ -130,6 +132,52 @@ class ShowMyParcelOrders extends Component
             ->body('De gekoppelde track & trace is ook verwijderd.')
             ->success()
             ->send();
+    }
+
+    /**
+     * Markeert het MyParcel label als gedownload en stuurt het PDF terug
+     * naar de browser. Wordt aangeroepen vanuit de download-knop in de
+     * order-overzicht-blade — voorheen was die knop een directe link naar
+     * de public storage URL waardoor `label_printed` nooit werd bijgewerkt.
+     */
+    public function downloadLabel(int $myParcelOrderId): ?BinaryFileResponse
+    {
+        $myParcelOrder = $this->order->myParcelOrders()
+            ->where('id', $myParcelOrderId)
+            ->first();
+
+        if (! $myParcelOrder || ! $myParcelOrder->label_pdf_path) {
+            Notification::make()
+                ->title('Label niet gevonden')
+                ->body('Er staat geen PDF klaar voor dit label.')
+                ->danger()
+                ->send();
+
+            return null;
+        }
+
+        if (! Storage::disk('public')->exists($myParcelOrder->label_pdf_path)) {
+            Notification::make()
+                ->title('Label-bestand ontbreekt')
+                ->body('Het PDF-bestand is niet meer aanwezig op de server. Maak het label opnieuw aan.')
+                ->danger()
+                ->send();
+
+            return null;
+        }
+
+        if (! $myParcelOrder->label_printed) {
+            $myParcelOrder->label_printed = true;
+            $myParcelOrder->save();
+        }
+
+        $this->order->refresh();
+
+        $filename = ($myParcelOrder->is_return ? 'retour-label-' : 'label-')
+            . ($myParcelOrder->order->invoice_id ?? $myParcelOrder->id)
+            . '.pdf';
+
+        return Storage::disk('public')->download($myParcelOrder->label_pdf_path, $filename);
     }
 
     public function render()

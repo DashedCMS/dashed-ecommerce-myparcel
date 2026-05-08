@@ -8,8 +8,7 @@ use Illuminate\Database\Migrations\Migration;
 // retourlabels. is_return markeert een MyParcelOrder als retourzending,
 // is_label_email_sent houdt bij of de retourmail al verstuurd is, en
 // personal_note bevat de optionele notitie aan de klant.
-return new class extends Migration
-{
+return new class () extends Migration {
     public function up(): void
     {
         Schema::table('dashed__order_my_parcel', function (Blueprint $table) {

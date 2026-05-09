@@ -120,13 +120,28 @@ class MyParcel
             }
 
             if (! $myParcelOrder->carrier) {
-                $order = $myParcelOrder->order;
-                $myParcelOrder->delete();
-                self::connectOrderWithCarrier($order);
-                $myParcelOrder = $order->myParcelOrders()->first();
+                $countryIsoCode = $myParcelOrder->order->countryIsoCode;
+                $defaultCarrier = Customsetting::get('my_parcel_default_carrier_' . $countryIsoCode, $myParcelOrder->order->site_id);
+
+                if ($defaultCarrier) {
+                    $order = $myParcelOrder->order;
+                    $myParcelOrder->delete();
+                    self::connectOrderWithCarrier($order);
+                    $myParcelOrder = $order->myParcelOrders()->first();
+                }
             }
 
-            if (! $myParcelOrder->carrier) {
+            if (! $myParcelOrder || ! $myParcelOrder->carrier) {
+                if ($myParcelOrder) {
+                    $myParcelOrder->error = 'Geen standaard MyParcel-carrier ingesteld voor land ' . ($myParcelOrder->order->countryIsoCode ?? '?') . '. Configureer de carrier en gebruik "Opnieuw in wachtrij zetten".';
+                    $myParcelOrder->save();
+
+                    $failures[] = [
+                        'invoice_id' => $myParcelOrder->order->invoice_id ?? $myParcelOrder->order_id,
+                        'message' => $myParcelOrder->error,
+                    ];
+                }
+
                 continue;
             }
 

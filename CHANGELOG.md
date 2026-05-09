@@ -2,6 +2,11 @@
 
 All notable changes to `dashed-ecommerce-myparcel` will be documented in this file.
 
+## v4.3.4 - 2026-05-09
+
+### Fixed
+- `MyParcel::createConcepts()` zette een MyParcelOrder zonder carrier elke cron-run (per minuut) opnieuw klaar: de bestaande MyParcelOrder werd gedelete en `connectOrderWithCarrier()` maakte 'm direct opnieuw aan, inclusief OrderLog-regel "Bestelling klaargezet voor MyParcel". Bij een land zonder ingestelde `my_parcel_default_carrier_<land>` (bv. FR voor Etsy-orders) bleef de nieuwe MyParcelOrder ook zonder carrier en herhaalde dit zich elke minuut, met als gevolg honderden duplicate OrderLogs op één order. Nu wordt alleen delete+recreate gedaan als er daadwerkelijk een default carrier voor het land is ingesteld; anders krijgt de MyParcelOrder een duidelijke error en stopt de cron 'm op te pakken (admin-actie "Opnieuw in wachtrij zetten" reset 'm na configuratie).
+
 ## v4.3.3 - 2026-05-08
 
 ### Fixed

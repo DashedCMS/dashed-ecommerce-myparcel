@@ -98,6 +98,16 @@ MARKDOWN,
 
         cms()->registerSettingsPage(MyParcelSettingsPage::class, 'MyParcel', 'archive-box', 'Koppel MyParcel');
 
+        cms()->registerIntegration([
+            'slug' => 'myparcel',
+            'label' => 'MyParcel',
+            'icon' => 'heroicon-o-truck',
+            'category' => 'shipping',
+            'settings_page' => MyParcelSettingsPage::class,
+            'health_check' => fn (?string $siteId = null) => \Dashed\DashedCore\Integrations\IntegrationHealth::fromSettings(['myparcel_api_key'], $siteId, 'API key ontbreekt'),
+            'package' => 'dashed-ecommerce-myparcel',
+        ]);
+
         ecommerce()->widgets(
             'orders',
             array_merge(ecommerce()->widgets('orders'), [

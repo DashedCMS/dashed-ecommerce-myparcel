@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 use Dashed\DashedCore\Models\Customsetting;
 use Dashed\DashedEcommerceCore\Models\Order;
 use Dashed\DashedEcommerceCore\Models\OrderLog;
+use MyParcelNL\Sdk\src\Model\Recipient;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierDPD;
 use MyParcelNL\Sdk\src\Helper\MyParcelCollection;
 use MyParcelNL\Sdk\src\Factory\ConsignmentFactory;
@@ -346,38 +347,59 @@ class MyParcel
     public static function createReturnLabelForOrder(MyParcelOrder $myParcelOrder): array
     {
         $apiKey = self::apiKey($myParcelOrder->order->site_id, encoded: false);
+        $siteId = $myParcelOrder->order->site_id;
 
         if (! $myParcelOrder->carrier) {
             throw new Exception('Geen vervoerder ingesteld op deze MyParcel order.');
         }
+
+        $shopName = (string) Customsetting::get('site_name', $siteId, '');
+        $shopStreet = (string) Customsetting::get('company_street', $siteId, '');
+        $shopHouseNr = (string) Customsetting::get('company_street_number', $siteId, '');
+        $shopPostalCode = trim((string) Customsetting::get('company_postal_code', $siteId, ''));
+        $shopCity = (string) Customsetting::get('company_city', $siteId, '');
+        $shopCountry = (string) Customsetting::get('company_country', $siteId, 'NL');
+        $shopPhone = (string) Customsetting::get('company_phone_number', $siteId, '');
+
+        if ($shopName === '' || $shopStreet === '' || $shopPostalCode === '' || $shopCity === '') {
+            throw new Exception('Retouradres van de winkel is niet volledig ingevuld. Vul site_name, company_street, company_postal_code en company_city in onder Algemene instellingen.');
+        }
+
+        $customerSender = (new Recipient())
+            ->setCc($myParcelOrder->order->countryIsoCode)
+            ->setPerson($myParcelOrder->order->name)
+            ->setFullStreet($myParcelOrder->order->street . ' ' . $myParcelOrder->order->house_nr)
+            ->setPostalCode(trim((string) $myParcelOrder->order->zip_code))
+            ->setCity($myParcelOrder->order->city)
+            ->setEmail((string) $myParcelOrder->order->email)
+            ->setPhone((string) $myParcelOrder->order->phone_number);
 
         $consigment = (ConsignmentFactory::createByCarrierId(app(app($myParcelOrder->carrier)::CONSIGNMENT)->getCarrierId()))
             ->setApiKey($apiKey)
             ->setReferenceIdentifier($myParcelOrder->id . '-' . $myParcelOrder->order->id . '-return')
             ->setPackageType($myParcelOrder->package_type)
             ->setDeliveryType($myParcelOrder->delivery_type)
-            ->setCountry($myParcelOrder->order->countryIsoCode)
-            ->setPerson($myParcelOrder->order->name)
-            ->setFullStreet($myParcelOrder->order->street . ' ' . $myParcelOrder->order->house_nr)
-            ->setPostalCode(trim($myParcelOrder->order->zip_code))
-            ->setCity($myParcelOrder->order->city)
-            ->setEmail($myParcelOrder->order->email)
-            ->setPhone($myParcelOrder->order->phone_number)
-            ->setLabelDescription('Retour bestelling ' . $myParcelOrder->order->invoice_id);
+            ->setCountry($shopCountry)
+            ->setPerson($shopName)
+            ->setFullStreet(trim($shopStreet . ' ' . $shopHouseNr))
+            ->setPostalCode($shopPostalCode)
+            ->setCity($shopCity)
+            ->setPhone($shopPhone)
+            ->setLabelDescription('Retour bestelling ' . $myParcelOrder->order->invoice_id)
+            ->setSender($customerSender);
 
         $consignments = (new MyParcelCollection())
             ->setUserAgents(['DashedCMS', '2.0'])
             ->addConsignment($consigment);
 
-        // createConcepts(true) gebruikt de unrelated-return endpoint van MyParcel.
-        // Vervolgens halen we het label op met setPdfOfLabels.
-        $consignments->createConcepts(true);
+        // Forward shipment van klant -> winkel met een expliciete custom-sender.
+        // De unrelated-return endpoint zette de winkel als afzender op het
+        // gerenderde label; daarom zetten we recipient = winkel, sender = klant
+        // en draaien we de richting expliciet om. Vereist de 'custom sender'
+        // permissie op het MyParcel account.
+        $consignments->createConcepts();
         $consignments->setLabelFormat('a6');
         $consignments->setLatestData();
-
-        // Haal het PDF label op via setPdfOfLabels (zonder createConcepts opnieuw,
-        // de concepten staan er al). setPdfOfLabels roept intern createConcepts
-        // aan, maar omdat alle items al een consignment_id hebben is dat een no-op.
         $consignments->setPdfOfLabels('a6');
 
         foreach ($consignments->getConsignments() as $shipment) {
@@ -388,8 +410,8 @@ class MyParcel
                 [
                     $shipment->getBarcode() => $shipment->getBarcodeUrl(
                         $shipment->getBarcode(),
-                        $myParcelOrder->order->zip_code,
-                        $myParcelOrder->order->countryIsoCode
+                        $shopPostalCode,
+                        $shopCountry,
                     ),
                 ],
             ];

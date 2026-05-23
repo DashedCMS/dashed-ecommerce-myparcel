@@ -105,7 +105,7 @@ MARKDOWN,
                 'icon' => 'heroicon-o-truck',
                 'category' => 'shipping',
                 'settings_page' => MyParcelSettingsPage::class,
-                'health_check' => fn (?string $siteId = null) => \Dashed\DashedCore\Integrations\IntegrationHealth::fromSettings(['myparcel_api_key'], $siteId, 'API key ontbreekt'),
+                'health_check' => fn (?string $siteId = null) => \Dashed\DashedCore\Integrations\IntegrationHealth::fromSettings(['my_parcel_api_key'], $siteId, 'API key ontbreekt'),
                 'package' => 'dashed-ecommerce-myparcel',
             ]);
         }

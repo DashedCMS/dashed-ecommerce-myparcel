@@ -442,7 +442,7 @@ class MyParcel
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
         ])
-            ->post('https://api.myparcel.com/api/v2/label?api_token=' . Customsetting::get('myparcel_api_key'), [
+            ->post('https://api.myparcel.com/api/v2/label?api_token=' . Customsetting::get('my_parcel_api_key'), [
                 'shipments' => $shipmentIds,
             ])
             ->json();

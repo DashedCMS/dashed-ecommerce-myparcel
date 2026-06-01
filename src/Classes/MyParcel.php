@@ -9,10 +9,10 @@ use Dashed\DashedCore\Classes\Mails;
 use Dashed\DashedCore\Classes\Sites;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use MyParcelNL\Sdk\src\Model\Recipient;
 use Dashed\DashedCore\Models\Customsetting;
 use Dashed\DashedEcommerceCore\Models\Order;
 use Dashed\DashedEcommerceCore\Models\OrderLog;
-use MyParcelNL\Sdk\src\Model\Recipient;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierDPD;
 use MyParcelNL\Sdk\src\Helper\MyParcelCollection;
 use MyParcelNL\Sdk\src\Factory\ConsignmentFactory;
@@ -139,6 +139,7 @@ class MyParcel
 
                     $failures[] = [
                         'invoice_id' => $myParcelOrder->order->invoice_id ?? $myParcelOrder->order_id,
+                        'order_id' => $myParcelOrder->order_id,
                         'message' => $myParcelOrder->error,
                     ];
                 }
@@ -179,6 +180,7 @@ class MyParcel
 
                 $failures[] = [
                     'invoice_id' => $myParcelOrder->order->invoice_id ?? $myParcelOrder->order_id,
+                    'order_id' => $myParcelOrder->order_id,
                     'message' => $e->getMessage(),
                 ];
 
@@ -192,13 +194,22 @@ class MyParcel
         }
 
         if (! empty($failures)) {
-            $lines = array_map(
-                fn ($failure) => "Bestelling {$failure['invoice_id']}: {$failure['message']}",
-                $failures
-            );
+            $lines = array_map(function ($failure) {
+                $line = "Bestelling {$failure['invoice_id']}: {$failure['message']}";
+
+                $url = $failure['order_id']
+                    ? rescue(fn () => route('filament.dashed.resources.orders.view', ['record' => $failure['order_id']]), null, false)
+                    : null;
+
+                if ($url) {
+                    $line .= '<br><a href="' . $url . '" style="display: inline-block; margin-top: 8px; padding: 8px 16px; background-color: #000000; color: #ffffff; border-radius: 6px; text-decoration: none; font-weight: bold;">Bekijk bestelling</a>';
+                }
+
+                return $line;
+            }, $failures);
 
             Mails::sendNotificationToAdmins(
-                "MyParcel kon de volgende bestellingen niet als concept aanmaken. Corrigeer de gegevens en probeer opnieuw:\n\n" . implode("\n", $lines),
+                'MyParcel kon de volgende bestellingen niet als concept aanmaken. Corrigeer de gegevens en probeer opnieuw:<br><br>' . implode('<br><br>', $lines),
                 count($failures) === 1
                     ? "MyParcel sync mislukt voor bestelling {$failures[0]['invoice_id']}"
                     : 'MyParcel sync mislukt voor ' . count($failures) . ' bestellingen'

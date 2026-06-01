@@ -24,6 +24,8 @@ use MyParcelNL\Sdk\src\Model\Carrier\CarrierDHLEuroplus;
 
 class MyParcel
 {
+    public const LABEL_BATCH_SIZE = 20;
+
     public static function getUserAgent(): string
     {
         return 'DashedCMS/2.0 PHP/8.2';
@@ -222,52 +224,76 @@ class MyParcel
         ];
     }
 
-    public static function createShipments()
+    /**
+     * Onverwerkte MyParcel-labels voor de actieve site, beperkt tot één batch.
+     * Dit is de batch-grens: max LABEL_BATCH_SIZE labels per document.
+     */
+    public static function unprintedOrdersForBatch(string $siteId, int $limit = self::LABEL_BATCH_SIZE)
+    {
+        return MyParcelOrder::where('label_printed', 0)
+            ->whereNotNull('shipment_id')
+            ->whereHas('order', fn ($q) => $q->where('site_id', $siteId))
+            ->limit($limit)
+            ->get();
+    }
+
+    public static function unprintedCount(string $siteId): int
+    {
+        return MyParcelOrder::where('label_printed', 0)
+            ->whereNotNull('shipment_id')
+            ->whereHas('order', fn ($q) => $q->where('site_id', $siteId))
+            ->count();
+    }
+
+    public static function createShipments(int $limit = self::LABEL_BATCH_SIZE): array
     {
         $siteId = Sites::getActive();
         $apiKey = self::apiKey($siteId, encoded: false);
 
-        $consignments = (new MyParcelCollection())
-            ->setUserAgents(['DashedCMS', '2.0']);
+        $myParcelOrders = self::unprintedOrdersForBatch($siteId, $limit);
 
-        $myParcelOrders = MyParcelOrder::where('label_printed', 0)->whereNotNull('shipment_id')->get();
-        $shipmentIds = [];
         $orders = [];
+        $filePath = null;
+        $printed = 0;
 
-        foreach ($myParcelOrders as $key => $myParcelOrder) {
-            if ($myParcelOrder->order->site_id !== $siteId) {
-                continue;
+        if ($myParcelOrders->isNotEmpty()) {
+            $consignments = (new MyParcelCollection())
+                ->setUserAgents(['DashedCMS', '2.0']);
+
+            $shipmentIds = [];
+            foreach ($myParcelOrders as $myParcelOrder) {
+                $shipmentIds[] = (int) $myParcelOrder->shipment_id;
+                $orders[] = $myParcelOrder->order;
             }
 
-            $shipmentIds[] = (int)$myParcelOrder->shipment_id;
-            $orders[] = $myParcelOrder->order;
+            $consignments = $consignments->addConsignmentByConsignmentIds($shipmentIds, $apiKey);
+            $response = $consignments->setPdfOfLabels('a6');
+
+            foreach ($response->getConsignments() as $shipment) {
+                $myParcelOrder = MyParcelOrder::find(str($shipment->getReferenceIdentifier())->explode('-')->first());
+                $myParcelOrder->track_and_trace = [
+                    [
+                        $shipment->getBarcode() => $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode),
+                    ],
+                ];
+                $myParcelOrder->label_printed = 1;
+                $myParcelOrder->save();
+                $printed++;
+
+                $myParcelOrder->order->addTrackAndTrace('my-parcel', $shipment->getCarrierName(), $shipment->getBarcode(), $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode));
+            }
+
+            $pdf = $response->getLabelPdf();
+
+            $filePath = 'dashed/orders/my-parcel/labels-' . time() . '.pdf';
+            Storage::disk('public')->put($filePath, $pdf);
         }
-
-        $consignments = $consignments->addConsignmentByConsignmentIds($shipmentIds, $apiKey);
-        $response = $consignments
-            ->setPdfOfLabels('a6');
-
-        foreach ($response->getConsignments() as $shipment) {
-            $myParcelOrder = MyParcelOrder::find(str($shipment->getReferenceIdentifier())->explode('-')->first());
-            $myParcelOrder->track_and_trace = [
-                [
-                    $shipment->getBarcode() => $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode),
-                ],
-            ];
-            $myParcelOrder->label_printed = 1;
-            $myParcelOrder->save();
-
-            $myParcelOrder->order->addTrackAndTrace('my-parcel', $shipment->getCarrierName(), $shipment->getBarcode(), $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode));
-        }
-
-        $pdf = $response->getLabelPdf();
-
-        $filePath = 'dashed/orders/my-parcel/labels-' . time() . '.pdf';
-        Storage::disk('public')->put($filePath, $pdf);
 
         return [
             'filePath' => $filePath,
             'orders' => $orders,
+            'processed' => $printed,
+            'hasMore' => self::unprintedCount($siteId) > 0,
         ];
     }
 

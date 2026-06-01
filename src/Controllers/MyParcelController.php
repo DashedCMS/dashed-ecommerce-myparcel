@@ -3,30 +3,20 @@
 namespace Dashed\DashedEcommerceMyParcel\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Storage;
-use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
-use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
-
-;
+use Filament\Notifications\Notification;
+use Dashed\DashedEcommerceMyParcel\Jobs\CreateShippingLabelsJob;
 
 class MyParcelController extends Controller
 {
     public function downloadLabels()
     {
-        $myParcelOrders = MyParcelOrder::where('label_printed', 0)->get();
+        CreateShippingLabelsJob::dispatch(auth()->user())->onQueue('ecommerce');
 
-        $response = MyParcel::getLabelsFromShipments($myParcelOrders->pluck('shipment_id')->toArray());
-        if (isset($response['labels'])) {
-            $fileName = '/dashed/myparcel/labels/labels-' . time() . '.pdf';
-            Storage::disk('dashed')->put($fileName, base64_decode($response['labels']));
-            foreach ($myParcelOrders as $myParcelOrder) {
-                $myParcelOrder->label_printed = 1;
-                $myParcelOrder->save();
-            }
+        Notification::make()
+            ->body('Labels worden aangemaakt, ze staan over een paar minuten klaar om te downloaden')
+            ->success()
+            ->send();
 
-            return Storage::disk('dashed')->download($fileName);
-        } else {
-            echo "<script>window.close();</script>";
-        }
+        return redirect()->back();
     }
 }

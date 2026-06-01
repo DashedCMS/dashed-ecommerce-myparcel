@@ -39,22 +39,47 @@ class CreateShippingLabelsJob implements ShouldQueue
      */
     public function handle(): void
     {
-        $response = MyParcel::createShipments();
+        $response = $this->generateLabels();
 
-        Notification::make()
-            ->body('Labels zijn aangemaakt (' . count($response['orders']) . ' bestellingen)')
-            ->persistent()
-            ->actions([
-                Action::make('download')
-                    ->label('Download labels')
-                    ->button()
-                    ->url(Storage::disk('public')->url($response['filePath']))
-                    ->openUrlInNewTab(),
-            ])
-            ->success()
-            ->sendToDatabase($this->user)
-            ->send();
+        if (($response['processed'] ?? 0) > 0) {
+            Notification::make()
+                ->body('Labels zijn aangemaakt (' . count($response['orders']) . ' bestellingen)')
+                ->persistent()
+                ->actions([
+                    Action::make('download')
+                        ->label('Download labels')
+                        ->button()
+                        ->url(Storage::disk('public')->url($response['filePath']))
+                        ->openUrlInNewTab(),
+                ])
+                ->success()
+                ->sendToDatabase($this->user)
+                ->send();
 
-        ExportSpecificPackingSlipsJob::dispatch($response['orders'], $this->user)->onQueue('ecommerce');
+            ExportSpecificPackingSlipsJob::dispatch($response['orders'], $this->user)->onQueue('ecommerce');
+        }
+
+        if (self::shouldChainNextBatch($response)) {
+            self::dispatch($this->user)->onQueue('ecommerce');
+        }
+    }
+
+    /**
+     * Haal één batch labels op. Geseparateerd zodat tests dit kunnen
+     * vervangen zonder de MyParcel SDK te raken.
+     */
+    protected function generateLabels(): array
+    {
+        return MyParcel::createShipments();
+    }
+
+    /**
+     * Keten alleen door naar een volgende batch als er in deze batch
+     * daadwerkelijk iets verwerkt is (voorkomt een oneindige lus bij 0
+     * matches) én er nog labels resteren.
+     */
+    public static function shouldChainNextBatch(array $response): bool
+    {
+        return ($response['processed'] ?? 0) > 0 && ($response['hasMore'] ?? false);
     }
 }

@@ -11,6 +11,7 @@ use Filament\Notifications\Notification;
 use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
 use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
 use Dashed\DashedEcommerceMyParcel\Jobs\CreateShippingLabelsJob;
+use Dashed\DashedEcommerceMyParcel\Support\MyParcelShippingProvider;
 use Dashed\DashedEcommerceMyParcel\Filament\Pages\Settings\MyParcelSettingsPage;
 
 class DashedEcommerceMyParcelPlugin implements Plugin
@@ -43,6 +44,8 @@ class DashedEcommerceMyParcelPlugin implements Plugin
         cms()->builder('builderBlockClasses', [
             self::class => 'builderBlocks',
         ]);
+
+        ecommerce()->registerShippingLabelProvider(new MyParcelShippingProvider());
 
         if (MyParcelOrder::where('label_printed', 0)->whereNotNull('shipment_id')->count()) {
             ecommerce()->buttonActions(

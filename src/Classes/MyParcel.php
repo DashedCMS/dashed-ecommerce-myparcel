@@ -231,6 +231,7 @@ class MyParcel
     public static function unprintedOrdersForBatch(string $siteId, int $limit = self::LABEL_BATCH_SIZE)
     {
         return MyParcelOrder::where('label_printed', 0)
+            ->where('is_return', false)
             ->whereNotNull('shipment_id')
             ->whereHas('order', fn ($q) => $q->where('site_id', $siteId))
             ->limit($limit)
@@ -240,6 +241,7 @@ class MyParcel
     public static function unprintedCount(string $siteId): int
     {
         return MyParcelOrder::where('label_printed', 0)
+            ->where('is_return', false)
             ->whereNotNull('shipment_id')
             ->whereHas('order', fn ($q) => $q->where('site_id', $siteId))
             ->count();

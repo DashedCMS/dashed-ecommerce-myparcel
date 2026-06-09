@@ -42,6 +42,45 @@ class MyParcel
         return $encoded ? base64_encode($apiKey) : $apiKey;
     }
 
+    /**
+     * Haalt het label-PDF voor één MyParcel-order op uit MyParcel en slaat het op
+     * de public disk op, zodat het geprint kan worden (bv. door de print-daemon).
+     *
+     * Idempotent: als er al een geldig label_pdf_path is, wordt dat hergebruikt.
+     * Markeert bewust NIET als 'gedownload/geprint' — dat blijft aan de
+     * daadwerkelijke print/admin-actie. Geeft het pad (relatief op de public
+     * disk) terug, of null als er geen shipment is om op te halen.
+     */
+    public static function downloadLabelForOrder(MyParcelOrder $myParcelOrder): ?string
+    {
+        if ($myParcelOrder->label_pdf_path && Storage::disk('public')->exists($myParcelOrder->label_pdf_path)) {
+            return $myParcelOrder->label_pdf_path;
+        }
+
+        if (! $myParcelOrder->shipment_id) {
+            return null;
+        }
+
+        $apiKey = self::apiKey($myParcelOrder->order->site_id, encoded: false);
+
+        $consignments = (new MyParcelCollection())
+            ->setUserAgents(['DashedCMS', '2.0']);
+        $consignments = $consignments->addConsignmentByConsignmentIds([(int) $myParcelOrder->shipment_id], $apiKey);
+        $response = $consignments->setPdfOfLabels('a6');
+
+        $pdf = $response->getLabelPdf();
+
+        $filePath = 'dashed/orders/my-parcel/label-'
+            . ($myParcelOrder->order->invoice_id ?: $myParcelOrder->order_id)
+            . '-' . time() . '.pdf';
+        Storage::disk('public')->put($filePath, $pdf);
+
+        $myParcelOrder->label_pdf_path = $filePath;
+        $myParcelOrder->save();
+
+        return $filePath;
+    }
+
     public static function baseUrl(): string
     {
         return 'https://api.myparcel.nl';

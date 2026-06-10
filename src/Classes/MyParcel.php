@@ -343,6 +343,36 @@ class MyParcel
      * direct het label PDF op. De PDF wordt opgeslagen in de public disk
      * en het pad wordt teruggegeven samen met track-en-trace data.
      */
+    /**
+     * Maakt een verzendlabel aan voor een order met de (per-land) standaard
+     * carrier/pakkettype/verzendtype, en haalt het label op. Voor de mobiele app:
+     * één knop "Verzendlabel aanmaken" zonder formulier.
+     */
+    public static function createLabelForOrder(Order $order): array
+    {
+        $country = $order->countryIsoCode;
+
+        $attrs = [
+            'carrier' => Customsetting::get("my_parcel_default_carrier_{$country}", null, CarrierPostNL::class),
+            'package_type' => Customsetting::get("my_parcel_default_package_type_{$country}", null, 1),
+            'delivery_type' => Customsetting::get("my_parcel_default_delivery_type_{$country}", null, 2),
+            'is_return' => false,
+        ];
+
+        $myParcelOrder = $order->myParcelOrders()
+            ->where('label_printed', 0)
+            ->where('is_return', false)
+            ->first();
+
+        if ($myParcelOrder) {
+            $myParcelOrder->update($attrs);
+        } else {
+            $myParcelOrder = $order->myParcelOrders()->create($attrs);
+        }
+
+        return self::createConceptAndLabelForOrder($myParcelOrder);
+    }
+
     public static function createConceptAndLabelForOrder(MyParcelOrder $myParcelOrder): array
     {
         $apiKey = self::apiKey($myParcelOrder->order->site_id, encoded: false);

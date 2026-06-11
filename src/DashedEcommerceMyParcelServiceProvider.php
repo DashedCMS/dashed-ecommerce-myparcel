@@ -33,6 +33,7 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
             $schedule = app(Schedule::class);
             $schedule->command(CreateMyParcelConceptOrders::class)->everyMinute()->withoutOverlapping();
             $schedule->command(CheckMyParcelOrders::class)->everyFifteenMinutes()->withoutOverlapping();
+            $schedule->command(\Dashed\DashedEcommerceMyParcel\Commands\SyncMyParcelStatuses::class)->hourly()->withoutOverlapping();
         });
 
         cms()->registerSettingsDocs(
@@ -93,6 +94,7 @@ MARKDOWN,
             ->hasCommands([
                 CheckMyParcelOrders::class,
                 CreateMyParcelConceptOrders::class,
+                \Dashed\DashedEcommerceMyParcel\Commands\SyncMyParcelStatuses::class,
             ])
             ->hasViews();
 

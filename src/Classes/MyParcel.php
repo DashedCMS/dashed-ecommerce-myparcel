@@ -630,4 +630,57 @@ class MyParcel
 //            CarrierDHLEuroplus::class => 'DHL Europlus',
         ];
     }
+
+    /** MyParcel-statuscode → onze gedeelde statussleutel. */
+    public static function normalizeStatus(int $code): ?string
+    {
+        // MyParcel shipment-statuscodes (developer.myparcel.nl).
+        return match (true) {
+            $code <= 2 => 'printed',          // 1 concept, 2 geregistreerd
+            $code === 3 => 'shipped',         // overgedragen aan vervoerder
+            $code >= 4 && $code <= 6 => 'in_transit',
+            $code === 7 => 'delivered',
+            $code >= 8 && $code <= 11 => 'error', // niet bezorgd / retour / inklaring
+            default => 'shipped',
+        };
+    }
+
+    /**
+     * Haal per nog-niet-afgeronde zending de live status op bij MyParcel en sla
+     * 'm genormaliseerd op. Error-veilig: faalt per zending stil.
+     */
+    public static function syncShipmentStatuses(): int
+    {
+        $updated = 0;
+        $orders = MyParcelOrder::query()
+            ->whereNotNull('shipment_id')
+            ->where(function ($q): void {
+                $q->whereNull('status')->orWhereNotIn('status', ['delivered', 'cancelled', 'returned']);
+            })
+            ->limit(200)->get();
+
+        foreach ($orders as $mp) {
+            try {
+                if (! $mp->order) {
+                    continue;
+                }
+                $resp = self::getShipment($mp->shipment_id, $mp->order->site_id);
+                $code = $resp['data']['shipments'][0]['status'] ?? null;
+                if ($code === null) {
+                    continue;
+                }
+                $normalized = self::normalizeStatus((int) $code);
+                if ($normalized && $mp->status !== $normalized) {
+                    $mp->status = $normalized;
+                    $mp->status_updated_at = now();
+                    $mp->save();
+                    $updated++;
+                }
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        return $updated;
+    }
 }

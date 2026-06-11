@@ -69,7 +69,13 @@ class ReturnLabelMail extends Mailable
             $subject = 'Je retourlabel voor bestelling ' . $this->order->invoice_id;
         }
 
-        $content = strtr($contentTemplate, $variables);
+        // Klantnaam ge-escaped voor de HTML-body (subject blijft platte tekst).
+        $content = strtr($contentTemplate, array_merge($variables, [
+            ':customerFirstName:' => e((string) $this->order->first_name),
+            ':customerLastName:' => e((string) $this->order->last_name),
+            ':firstName:' => e((string) $this->order->first_name),
+            ':lastName:' => e((string) $this->order->last_name),
+        ]));
 
         // Bouw de losse blokken op voor de dashed-core layout. We gebruiken
         // bewust de bestaande heading/text/divider blokken zodat de mail

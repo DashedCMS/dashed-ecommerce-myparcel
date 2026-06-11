@@ -72,7 +72,7 @@ class MyParcel
 
         $filePath = 'dashed/orders/my-parcel/label-'
             . ($myParcelOrder->order->invoice_id ?: $myParcelOrder->order_id)
-            . '-' . time() . '.pdf';
+            . '-' . \Illuminate\Support\Str::random(40) . '.pdf';
         Storage::disk('public')->put($filePath, $pdf);
 
         $myParcelOrder->label_pdf_path = $filePath;
@@ -236,7 +236,7 @@ class MyParcel
 
         if (! empty($failures)) {
             $lines = array_map(function ($failure) {
-                $line = "Bestelling {$failure['invoice_id']}: {$failure['message']}";
+                $line = 'Bestelling ' . e($failure['invoice_id']) . ': ' . e($failure['message']);
 
                 $url = $failure['order_id']
                     ? rescue(fn () => route('filament.dashed.resources.orders.view', ['record' => $failure['order_id']]), null, false)
@@ -326,7 +326,7 @@ class MyParcel
 
             $pdf = $response->getLabelPdf();
 
-            $filePath = 'dashed/orders/my-parcel/labels-' . time() . '.pdf';
+            $filePath = 'dashed/orders/my-parcel/labels-' . \Illuminate\Support\Str::random(40) . '.pdf';
             Storage::disk('public')->put($filePath, $pdf);
         }
 
@@ -348,14 +348,14 @@ class MyParcel
      * carrier/pakkettype/verzendtype, en haalt het label op. Voor de mobiele app:
      * één knop "Verzendlabel aanmaken" zonder formulier.
      */
-    public static function createLabelForOrder(Order $order): array
+    public static function createLabelForOrder(Order $order, array $overrides = []): array
     {
         $country = $order->countryIsoCode;
 
         $attrs = [
-            'carrier' => Customsetting::get("my_parcel_default_carrier_{$country}", null, CarrierPostNL::class),
-            'package_type' => Customsetting::get("my_parcel_default_package_type_{$country}", null, 1),
-            'delivery_type' => Customsetting::get("my_parcel_default_delivery_type_{$country}", null, 2),
+            'carrier' => $overrides['carrier'] ?? Customsetting::get("my_parcel_default_carrier_{$country}", null, CarrierPostNL::class),
+            'package_type' => $overrides['package_type'] ?? Customsetting::get("my_parcel_default_package_type_{$country}", null, 1),
+            'delivery_type' => $overrides['delivery_type'] ?? Customsetting::get("my_parcel_default_delivery_type_{$country}", null, 2),
             'is_return' => false,
         ];
 
@@ -432,7 +432,7 @@ class MyParcel
 
         $pdf = $consignments->getLabelPdf();
 
-        $filePath = 'dashed/orders/my-parcel/label-' . $myParcelOrder->order->invoice_id . '-' . time() . '.pdf';
+        $filePath = 'dashed/orders/my-parcel/label-' . $myParcelOrder->order->invoice_id . '-' . \Illuminate\Support\Str::random(40) . '.pdf';
         Storage::disk('public')->put($filePath, $pdf);
 
         $myParcelOrder->label_pdf_path = $filePath;
@@ -531,7 +531,7 @@ class MyParcel
 
         $pdf = $consignments->getLabelPdf();
 
-        $filePath = 'dashed/orders/my-parcel/return-label-' . $myParcelOrder->order->invoice_id . '-' . time() . '.pdf';
+        $filePath = 'dashed/orders/my-parcel/return-label-' . $myParcelOrder->order->invoice_id . '-' . \Illuminate\Support\Str::random(40) . '.pdf';
         Storage::disk('public')->put($filePath, $pdf);
 
         $myParcelOrder->label_pdf_path = $filePath;

@@ -29,6 +29,11 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
             return $model->hasMany(MyParcelOrder::class);
         });
 
+        \Illuminate\Support\Facades\Event::listen(
+            \Dashed\DashedEcommerceCore\Events\Orders\OrderReturnApprovedEvent::class,
+            \Dashed\DashedEcommerceMyParcel\Listeners\CreateMyParcelReturnLabelListener::class
+        );
+
         $this->app->booted(function () {
             $schedule = app(Schedule::class);
             $schedule->command(CreateMyParcelConceptOrders::class)->everyMinute()->withoutOverlapping();

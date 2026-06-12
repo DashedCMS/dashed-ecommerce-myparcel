@@ -660,27 +660,61 @@ class MyParcel
             ->limit(200)->get();
 
         foreach ($orders as $mp) {
-            try {
-                if (! $mp->order) {
-                    continue;
-                }
-                $resp = self::getShipment($mp->shipment_id, $mp->order->site_id);
-                $code = $resp['data']['shipments'][0]['status'] ?? null;
-                if ($code === null) {
-                    continue;
-                }
-                $normalized = self::normalizeStatus((int) $code);
-                if ($normalized && $mp->status !== $normalized) {
-                    $mp->status = $normalized;
-                    $mp->status_updated_at = now();
-                    $mp->save();
-                    $updated++;
-                }
-            } catch (\Throwable $e) {
-                report($e);
-            }
+            $updated += self::syncShipmentStatus($mp);
         }
 
         return $updated;
+    }
+
+    /**
+     * Per-order variant van syncShipmentStatuses(): werkt enkel de labelstatussen
+     * van de gegeven order bij. Geeft het aantal gewijzigde labels terug.
+     */
+    public static function syncShipmentStatusesForOrder(Order $order): int
+    {
+        $updated = 0;
+        $shipments = MyParcelOrder::query()
+            ->where('order_id', $order->id)
+            ->whereNotNull('shipment_id')
+            ->where(function ($q): void {
+                $q->whereNull('status')->orWhereNotIn('status', ['delivered', 'cancelled', 'returned']);
+            })
+            ->get();
+
+        foreach ($shipments as $mp) {
+            $updated += self::syncShipmentStatus($mp);
+        }
+
+        return $updated;
+    }
+
+    /**
+     * Haalt de live status van één MyParcel-zending op en slaat 'm genormaliseerd
+     * op. Geeft 1 terug bij een statuswijziging, anders 0. Error-veilig per zending.
+     */
+    private static function syncShipmentStatus(MyParcelOrder $mp): int
+    {
+        try {
+            if (! $mp->order) {
+                return 0;
+            }
+            $resp = self::getShipment($mp->shipment_id, $mp->order->site_id);
+            $code = $resp['data']['shipments'][0]['status'] ?? null;
+            if ($code === null) {
+                return 0;
+            }
+            $normalized = self::normalizeStatus((int) $code);
+            if ($normalized && $mp->status !== $normalized) {
+                $mp->status = $normalized;
+                $mp->status_updated_at = now();
+                $mp->save();
+
+                return 1;
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return 0;
     }
 }

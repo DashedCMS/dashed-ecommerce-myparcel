@@ -3,6 +3,8 @@
 namespace Dashed\DashedEcommerceMyParcel\Support;
 
 use Dashed\DashedCore\Classes\Sites;
+use Dashed\DashedEcommerceCore\Models\Order;
+use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
 use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
 use Dashed\DashedEcommerceCore\Contracts\ShippingLabelProvider;
 
@@ -43,5 +45,17 @@ class MyParcelShippingProvider implements ShippingLabelProvider
             $order->error = null;
             $order->save();
         }
+    }
+
+    public function syncOrderStatuses(Order $order): int
+    {
+        return MyParcel::syncShipmentStatusesForOrder($order);
+    }
+
+    public function hasLabelsForOrder(Order $order): bool
+    {
+        return MyParcelOrder::where('order_id', $order->id)
+            ->whereNotNull('shipment_id')
+            ->exists();
     }
 }

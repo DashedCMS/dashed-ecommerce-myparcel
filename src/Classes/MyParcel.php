@@ -116,6 +116,11 @@ class MyParcel
     /**
      * Roept per gezette optie de bijbehorende SDK-setter aan op de consignment.
      * Booleans alleen bij truthy waarde, insurance alleen wanneer > 0 (centen).
+     *
+     * LET OP: deze setter-takken zijn een tweede, expliciete lijst naast
+     * optionLabels(). Voeg je daar een nieuwe optie toe, voeg hem hier óók toe —
+     * anders verschijnt de optie wel in het formulier/de weergave maar wordt hij
+     * niet op de zending toegepast.
      */
     public static function applyOptionsToConsignment($consignment, array $options): void
     {

@@ -156,7 +156,7 @@ class MyParcel
 
         $apiKey = Customsetting::get('my_parcel_api_key', $siteId, disableCache: true);
 
-        return $encoded ? base64_encode($apiKey) : $apiKey;
+        return $encoded ? base64_encode((string) $apiKey) : (string) $apiKey;
     }
 
     /**

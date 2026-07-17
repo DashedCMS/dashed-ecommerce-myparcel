@@ -94,6 +94,60 @@ class MyParcel
         return $out;
     }
 
+    /**
+     * Filtert overrides tot alleen bekende extra-optie-keys (self::optionLabels()),
+     * cast booleans naar bool en zet 'insurance' om van euro naar int-centen.
+     */
+    public static function sanitizeExtraOptions(array $overrides): array
+    {
+        $filtered = array_intersect_key($overrides, self::optionLabels());
+
+        foreach ($filtered as $key => $value) {
+            if ($key === 'insurance') {
+                $filtered[$key] = (int) round(((float) $value) * 100);
+            } else {
+                $filtered[$key] = (bool) $value;
+            }
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * Roept per gezette optie de bijbehorende SDK-setter aan op de consignment.
+     * Booleans alleen bij truthy waarde, insurance alleen wanneer > 0 (centen).
+     */
+    public static function applyOptionsToConsignment($consignment, array $options): void
+    {
+        if (isset($options['signature']) && $options['signature']) {
+            $consignment->setSignature(true);
+        }
+
+        if (isset($options['age_check']) && $options['age_check']) {
+            $consignment->setAgeCheck(true);
+        }
+
+        if (isset($options['only_recipient']) && $options['only_recipient']) {
+            $consignment->setOnlyRecipient(true);
+        }
+
+        if (isset($options['return']) && $options['return']) {
+            $consignment->setReturn(true);
+        }
+
+        if (isset($options['same_day']) && $options['same_day']) {
+            $consignment->setSameDayDelivery(true);
+        }
+
+        if (isset($options['large_format']) && $options['large_format']) {
+            $consignment->setLargeFormat(true);
+        }
+
+        if (isset($options['insurance']) && $options['insurance'] > 0) {
+            $consignment->setInsurance((int) $options['insurance']);
+        }
+    }
+
     public static function apiKey(?string $siteId = null, $encoded = true): string
     {
         if (! $siteId) {
@@ -420,6 +474,7 @@ class MyParcel
             'package_type' => $overrides['package_type'] ?? Customsetting::get("my_parcel_default_package_type_{$country}", null, 1),
             'delivery_type' => $overrides['delivery_type'] ?? Customsetting::get("my_parcel_default_delivery_type_{$country}", null, 2),
             'is_return' => false,
+            'options' => self::sanitizeExtraOptions($overrides),
         ];
 
         $myParcelOrder = $order->myParcelOrders()
@@ -457,6 +512,8 @@ class MyParcel
             ->setEmail($myParcelOrder->order->email)
             ->setPhone($myParcelOrder->order->phone_number)
             ->setLabelDescription('Bestelling ' . $myParcelOrder->order->invoice_id);
+
+        self::applyOptionsToConsignment($consigment, $myParcelOrder->options ?? []);
 
         $consignments = (new MyParcelCollection())
             ->setUserAgents(['DashedCMS', '2.0'])

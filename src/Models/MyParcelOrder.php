@@ -30,10 +30,12 @@ class MyParcelOrder extends Model
         'is_label_email_sent',
         'personal_note',
         'label_pdf_path',
+        'options',
     ];
 
     protected $casts = [
         'track_and_trace' => 'array',
+        'options' => 'array',
         'label_printed' => 'boolean',
         'is_return' => 'boolean',
         'is_label_email_sent' => 'boolean',

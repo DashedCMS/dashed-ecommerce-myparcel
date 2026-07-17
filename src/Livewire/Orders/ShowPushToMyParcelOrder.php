@@ -6,6 +6,8 @@ use Throwable;
 use Livewire\Component;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Schemas\Contracts\HasSchemas;
@@ -48,10 +50,21 @@ class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasAction
                 $data['delivery_type'] = $myParcelOrder->delivery_type ?? Customsetting::get("my_parcel_default_delivery_type_{$this->order->countryIsoCode}", null, 2);
                 $data['carrier'] = $myParcelOrder->carrier ?? Customsetting::get("my_parcel_default_carrier_{$this->order->countryIsoCode}", null, CarrierPostNL::class);
 
+                $existingOptions = $myParcelOrder->options ?? [];
+                foreach (MyParcel::extraLabelOptions($this->order) as $field) {
+                    if (array_key_exists($field['name'], $existingOptions)) {
+                        $data[$field['name']] = $field['type'] === 'amount'
+                            ? ((int) $existingOptions[$field['name']]) / 100
+                            : (bool) $existingOptions[$field['name']];
+                    } else {
+                        $data[$field['name']] = $field['default'];
+                    }
+                }
+
                 return $data;
             })
             ->schema(function () {
-                return [
+                $fields = [
                     Select::make("carrier")
                         ->label('Carrier')
                         ->required()
@@ -67,9 +80,24 @@ class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasAction
                         ->options(MyParcel::getDeliveryTypes())
                         ->helperText('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen'),
                 ];
+
+                foreach (MyParcel::extraLabelOptions($this->order) as $extraOption) {
+                    $fields[] = match ($extraOption['type']) {
+                        'amount' => TextInput::make($extraOption['name'])
+                            ->label($extraOption['label'])
+                            ->numeric()
+                            ->prefix('€'),
+                        default => Toggle::make($extraOption['name'])
+                            ->label($extraOption['label']),
+                    };
+                }
+
+                return $fields;
             })
             ->action(function ($data) {
                 $this->validate();
+
+                $options = MyParcel::sanitizeExtraOptions($data);
 
                 $myParcelOrder = $this->order->myParcelOrders()
                     ->where('label_printed', 0)
@@ -82,6 +110,7 @@ class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasAction
                         'package_type' => $data['package_type'],
                         'delivery_type' => $data['delivery_type'],
                         'is_return' => false,
+                        'options' => $options,
                     ]);
                 } else {
                     $myParcelOrder->update([
@@ -89,6 +118,7 @@ class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasAction
                         'package_type' => $data['package_type'],
                         'delivery_type' => $data['delivery_type'],
                         'is_return' => false,
+                        'options' => $options,
                     ]);
                 }
 

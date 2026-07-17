@@ -31,6 +31,69 @@ class MyParcel
         return 'DashedCMS/2.0 PHP/8.2';
     }
 
+    /**
+     * key => 'Menselijk label' map — single source of truth voor zowel het
+     * extra-optie-schema (extraLabelOptions) als de leesbare weergave
+     * (readOptionsForDisplay).
+     */
+    public static function optionLabels(): array
+    {
+        return [
+            'signature' => 'Handtekening',
+            'insurance' => 'Verzekering',
+            'age_check' => 'Leeftijdscheck 18+',
+            'only_recipient' => 'Alleen ontvanger',
+            'return' => 'Retour meesturen',
+            'same_day' => 'Same-day bezorging',
+            'large_format' => 'Groot pakket',
+        ];
+    }
+
+    /**
+     * Geordende lijst extra-optie-descriptors (group 'extra'), zelfde vorm
+     * als het Global-Constraints-contract. $order wordt momenteel niet
+     * gebruikt, maar blijft in de signatuur voor interface-consistentie met
+     * de controller-aanroep ($providerClass::extraLabelOptions($model)).
+     */
+    public static function extraLabelOptions(Order $order): array
+    {
+        $fields = [];
+        foreach (self::optionLabels() as $key => $label) {
+            $fields[] = [
+                'name' => $key,
+                'label' => $label,
+                'type' => $key === 'insurance' ? 'amount' : 'boolean',
+                'required' => false,
+                'default' => $key === 'insurance' ? 0 : false,
+                'group' => 'extra',
+            ];
+        }
+
+        return $fields;
+    }
+
+    /**
+     * Mapt een opgeslagen options-map naar {key,label,value}[] voor weergave.
+     * Booleans true -> 'Ja'; insurance (centen) -> '€ 50,00'; false/leeg/0
+     * worden weggelaten.
+     */
+    public static function readOptionsForDisplay(?array $options): array
+    {
+        $labels = self::optionLabels();
+        $out = [];
+        foreach ($options ?? [] as $key => $value) {
+            if (! isset($labels[$key]) || $value === false || $value === null || $value === '' || $value === 0 || $value === '0') {
+                continue;
+            }
+            $display = $key === 'insurance'
+                ? '€ ' . number_format(((int) $value) / 100, 2, ',', '.')
+                : 'Ja';
+            $out[] = ['key' => $key, 'label' => $labels[$key], 'value' => $display];
+        }
+
+        return $out;
+    }
+
     public static function apiKey(?string $siteId = null, $encoded = true): string
     {
         if (! $siteId) {

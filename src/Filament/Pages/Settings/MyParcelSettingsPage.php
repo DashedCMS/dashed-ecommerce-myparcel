@@ -64,34 +64,34 @@ class MyParcelSettingsPage extends Page
 
             foreach ($this->activatedRegions as $region) {
                 $region = Countries::getCountryIsoCode($region);
-                $regionSchemas[] = Section::make('Voor bestellingen naar ' . $region)
+                $regionSchemas[] = Section::make(__('Voor bestellingen naar :regio', ['regio' => $region]))
                     ->schema([
                         Select::make("my_parcel_default_carrier_{$region}_{$site['id']}")
-                            ->label('Automatische bestelling carrier')
+                            ->label(__('Automatische bestelling carrier'))
                             ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
                             ->reactive()
                             ->options(MyParcel::getCarriers()),
                         Select::make("my_parcel_default_package_type_{$region}_{$site['id']}")
-                            ->label('Automatische bestelling pakket type')
+                            ->label(__('Automatische bestelling pakket type'))
                             ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
                             ->reactive()
                             ->options(MyParcel::getPackageTypes())
-                            ->helperText('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen'),
+                            ->helperText(__('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen')),
                         Select::make("my_parcel_default_delivery_type_{$region}_{$site['id']}")
-                            ->label('Automatisch bestelling verzend type')
+                            ->label(__('Automatisch bestelling verzend type'))
                             ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
                             ->reactive()
                             ->options(MyParcel::getDeliveryTypes())
-                            ->helperText('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen'),
+                            ->helperText(__('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen')),
                         TextInput::make("my_parcel_minimum_product_count_{$region}_{$site['id']}")
-                            ->label('Standaard pakket type vanaf een bepaald aantal producten')
+                            ->label(__('Standaard pakket type vanaf een bepaald aantal producten'))
                             ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
                             ->reactive()
                             ->numeric()
                             ->minValue(1)
                             ->maxValue(1000),
                         Select::make("my_parcel_minimum_product_count_package_type_{$region}_{$site['id']}")
-                            ->label('Standaard pakket type vanaf een bepaald aantal producten')
+                            ->label(__('Standaard pakket type vanaf een bepaald aantal producten'))
                             ->required(fn (Get $get) => $get("my_parcel_automatically_push_orders_{$site['id']}"))
                             ->reactive()
                             ->options(MyParcel::getPackageTypes()),
@@ -114,16 +114,16 @@ class MyParcelSettingsPage extends Page
                         'lg' => 2,
                     ]),
                 TextInput::make("my_parcel_api_key_{$site['id']}")
-                    ->label('MyParcel API key')
+                    ->label(__('MyParcel API key'))
                     ->maxLength(255)
                     ->columnSpan([
                         'default' => 1,
                         'lg' => 2,
                     ]),
                 Toggle::make("my_parcel_automatically_push_orders_{$site['id']}")
-                    ->label('Automatisch bestellingen naar MyParcel pushen')
+                    ->label(__('Automatisch bestellingen naar MyParcel pushen'))
                     ->reactive()
-                    ->helperText('Deze bestellingen komen als concept in MyParcel, pakket type etc kan je nog aanpassen VOORDAT je de label download')
+                    ->helperText(__('Deze bestellingen komen als concept in MyParcel, pakket type etc kan je nog aanpassen VOORDAT je de label download'))
                     ->columnSpan([
                         'default' => 1,
                         'lg' => 2,
@@ -164,7 +164,7 @@ class MyParcelSettingsPage extends Page
         }
 
         Notification::make()
-            ->title('De MyParcel instellingen zijn opgeslagen')
+            ->title(__('De MyParcel instellingen zijn opgeslagen'))
             ->success()
             ->send();
 

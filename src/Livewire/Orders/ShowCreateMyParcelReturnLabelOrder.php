@@ -45,7 +45,7 @@ class ShowCreateMyParcelReturnLabelOrder extends Component implements HasSchemas
     public function action(): Action
     {
         return Action::make('action')
-            ->label('Retourlabel aanmaken')
+            ->label(__('Retourlabel aanmaken'))
             ->color('warning')
             ->icon('heroicon-o-arrow-uturn-left')
             ->fillForm(fn () => [
@@ -57,36 +57,36 @@ class ShowCreateMyParcelReturnLabelOrder extends Component implements HasSchemas
             ])
             ->schema([
                 Select::make('carrier')
-                    ->label('Vervoerder')
+                    ->label(__('Vervoerder'))
                     ->required()
                     ->options(MyParcel::getCarriers()),
                 Select::make('package_type')
-                    ->label('Pakket type')
+                    ->label(__('Pakket type'))
                     ->required()
                     ->options(MyParcel::getPackageTypes())
-                    ->helperText('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen.'),
+                    ->helperText(__('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen.')),
                 Select::make('delivery_type')
-                    ->label('Verzend type')
+                    ->label(__('Verzend type'))
                     ->required()
                     ->options(MyParcel::getDeliveryTypes())
-                    ->helperText('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen.'),
+                    ->helperText(__('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen.')),
                 Toggle::make('send_email_to_customer')
-                    ->label('Mail klant met label als bijlage')
+                    ->label(__('Mail klant met label als bijlage'))
                     ->default(true),
                 Textarea::make('personal_note')
-                    ->label('Persoonlijke notitie aan klant')
+                    ->label(__('Persoonlijke notitie aan klant'))
                     ->rows(4)
                     ->nullable()
-                    ->helperText('Optioneel. Wordt onder de standaardtekst toegevoegd in de mail.'),
+                    ->helperText(__('Optioneel. Wordt onder de standaardtekst toegevoegd in de mail.')),
             ])
-            ->modalSubmitActionLabel('Retourlabel aanmaken')
-            ->modalHeading('Retourlabel aanmaken')
-            ->modalDescription('Maak een retourlabel aan voor deze bestelling. Het label wordt na bevestigen gedownload, en eventueel direct naar de klant gemaild.')
+            ->modalSubmitActionLabel(__('Retourlabel aanmaken'))
+            ->modalHeading(__('Retourlabel aanmaken'))
+            ->modalDescription(__('Maak een retourlabel aan voor deze bestelling. Het label wordt na bevestigen gedownload, en eventueel direct naar de klant gemaild.'))
             ->action(function (array $data) {
                 if (! MyParcel::isConnected($this->order->site_id)) {
                     Notification::make()
-                        ->title('MyParcel niet geconnect')
-                        ->body('Controleer de API sleutel in de MyParcel instellingen.')
+                        ->title(__('MyParcel niet geconnect'))
+                        ->body(__('Controleer de API sleutel in de MyParcel instellingen.'))
                         ->danger()
                         ->send();
 
@@ -110,7 +110,7 @@ class ShowCreateMyParcelReturnLabelOrder extends Component implements HasSchemas
                     $myParcelOrder->save();
 
                     Notification::make()
-                        ->title('Aanmaken van retourlabel mislukt')
+                        ->title(__('Aanmaken van retourlabel mislukt'))
                         ->body($e->getMessage())
                         ->danger()
                         ->send();
@@ -132,16 +132,16 @@ class ShowCreateMyParcelReturnLabelOrder extends Component implements HasSchemas
                         $myParcelOrder->save();
 
                         Notification::make()
-                            ->title('Retourlabel verstuurd naar klant')
-                            ->body('De mail is verzonden naar ' . $this->order->email . '.')
+                            ->title(__('Retourlabel verstuurd naar klant'))
+                            ->body(__('De mail is verzonden naar :email.', ['email' => $this->order->email]))
                             ->success()
                             ->send();
 
                         return null;
                     } catch (Throwable $e) {
                         Notification::make()
-                            ->title('Mail naar klant mislukt')
-                            ->body('Het label is wel aangemaakt, maar de mail kon niet verstuurd worden: ' . $e->getMessage())
+                            ->title(__('Mail naar klant mislukt'))
+                            ->body(__('Het label is wel aangemaakt, maar de mail kon niet verstuurd worden: :fout', ['fout' => $e->getMessage()]))
                             ->warning()
                             ->send();
                     }
@@ -150,8 +150,8 @@ class ShowCreateMyParcelReturnLabelOrder extends Component implements HasSchemas
                 $this->js('window.open(' . json_encode($labelUrl) . ", '_blank');");
 
                 Notification::make()
-                    ->title('Retourlabel aangemaakt')
-                    ->body('Het label is geopend in een nieuw tabblad.')
+                    ->title(__('Retourlabel aangemaakt'))
+                    ->body(__('Het label is geopend in een nieuw tabblad.'))
                     ->success()
                     ->send();
 

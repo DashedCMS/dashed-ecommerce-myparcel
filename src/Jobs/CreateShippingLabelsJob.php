@@ -43,11 +43,11 @@ class CreateShippingLabelsJob implements ShouldQueue
 
         if (($response['processed'] ?? 0) > 0) {
             Notification::make()
-                ->body('Labels zijn aangemaakt (' . count($response['orders']) . ' bestellingen)')
+                ->body(__('Labels zijn aangemaakt (:aantal bestellingen)', ['aantal' => count($response['orders'])]))
                 ->persistent()
                 ->actions([
                     Action::make('download')
-                        ->label('Download labels')
+                        ->label(__('Download labels'))
                         ->button()
                         ->url(Storage::disk('public')->url($response['filePath']))
                         ->openUrlInNewTab(),

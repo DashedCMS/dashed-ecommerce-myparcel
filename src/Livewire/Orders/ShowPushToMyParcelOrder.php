@@ -38,7 +38,7 @@ class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasAction
     public function action(): Action
     {
         return Action::make('action')
-            ->label('Verzendlabel aanmaken')
+            ->label(__('Verzendlabel aanmaken'))
             ->color('primary')
             ->icon('heroicon-o-document-arrow-down')
             ->fillForm(function () {
@@ -66,19 +66,19 @@ class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasAction
             ->schema(function () {
                 $fields = [
                     Select::make("carrier")
-                        ->label('Carrier')
+                        ->label(__('Carrier'))
                         ->required()
                         ->options(MyParcel::getCarriers()),
                     Select::make("package_type")
-                        ->label('Pakket type')
+                        ->label(__('Pakket type'))
                         ->required()
                         ->options(MyParcel::getPackageTypes())
-                        ->helperText('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen'),
+                        ->helperText(__('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen')),
                     Select::make("delivery_type")
-                        ->label('Verzend type')
+                        ->label(__('Verzend type'))
                         ->required()
                         ->options(MyParcel::getDeliveryTypes())
-                        ->helperText('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen'),
+                        ->helperText(__('Let op: niet alle opties zijn altijd beschikbaar voor alle adressen')),
                 ];
 
                 foreach (MyParcel::extraLabelOptions($this->order) as $extraOption) {
@@ -86,7 +86,7 @@ class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasAction
                         'amount' => TextInput::make($extraOption['name'])
                             ->label($extraOption['label'])
                             ->numeric()
-                            ->prefix('€'),
+                            ->prefix(__('€')),
                         default => Toggle::make($extraOption['name'])
                             ->label($extraOption['label']),
                     };
@@ -129,7 +129,7 @@ class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasAction
                     $myParcelOrder->save();
 
                     Notification::make()
-                        ->title('Aanmaken van verzendlabel mislukt')
+                        ->title(__('Aanmaken van verzendlabel mislukt'))
                         ->body($e->getMessage())
                         ->danger()
                         ->send();
@@ -138,8 +138,8 @@ class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasAction
                 }
 
                 Notification::make()
-                    ->title('Verzendlabel aangemaakt')
-                    ->body('Het label staat klaar in de lijst hieronder en kan via de download-knop opgehaald worden.')
+                    ->title(__('Verzendlabel aangemaakt'))
+                    ->body(__('Het label staat klaar in de lijst hieronder en kan via de download-knop opgehaald worden.'))
                     ->success()
                     ->send();
 

@@ -33,7 +33,7 @@ class DashedEcommerceMyParcelPlugin implements Plugin
         cms()
             ->builder('productGroupBlocks', [
                 Select::make('my-parcel-package-type')
-                    ->label('MyParcel pakket type')
+                    ->label(__('MyParcel pakket type'))
                     ->options(MyParcel::getPackageTypes()),
             ]);
     }
@@ -52,13 +52,13 @@ class DashedEcommerceMyParcelPlugin implements Plugin
                 array_merge(ecommerce()->buttonActions('orders'), [
                     Action::make('downloadMyParcelLabels')
                         ->button()
-                        ->label('Download MyParcel Labels (' . MyParcelOrder::where('label_printed', 0)->whereNotNull('shipment_id')->count() . ')')
+                        ->label(__('Download MyParcel Labels (:aantal)', ['aantal' => MyParcelOrder::where('label_printed', 0)->whereNotNull('shipment_id')->count()]))
                         ->openUrlInNewTab()
                         ->action(function () {
                             CreateShippingLabelsJob::dispatch(auth()->user())->onQueue('ecommerce');
 
                             Notification::make()
-                                ->body('Labels worden aangemaakt, ze staan over een paar minuten klaar om te downloaden')
+                                ->body(__('Labels worden aangemaakt, ze staan over een paar minuten klaar om te downloaden'))
                                 ->success()
                                 ->send();
                         }),

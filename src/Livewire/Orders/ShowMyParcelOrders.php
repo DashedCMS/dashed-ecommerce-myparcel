@@ -46,7 +46,7 @@ class ShowMyParcelOrders extends Component
 
         if (! $myParcelOrder) {
             Notification::make()
-                ->title('MyParcel order niet gevonden')
+                ->title(__('MyParcel order niet gevonden'))
                 ->danger()
                 ->send();
 
@@ -62,8 +62,8 @@ class ShowMyParcelOrders extends Component
             $this->order->refresh();
 
             Notification::make()
-                ->title('Concept wordt aangemaakt bij MyParcel')
-                ->body('De job is gestart - ververs deze pagina na een paar seconden om de status bij te werken.')
+                ->title(__('Concept wordt aangemaakt bij MyParcel'))
+                ->body(__('De job is gestart - ververs deze pagina na een paar seconden om de status bij te werken.'))
                 ->success()
                 ->send();
 
@@ -72,8 +72,8 @@ class ShowMyParcelOrders extends Component
 
         if (! $myParcelOrder->label_printed) {
             Notification::make()
-                ->title('Label staat al in de wachtrij')
-                ->body('Dit label wordt bij de volgende download in het overzicht meegenomen.')
+                ->title(__('Label staat al in de wachtrij'))
+                ->body(__('Dit label wordt bij de volgende download in het overzicht meegenomen.'))
                 ->warning()
                 ->send();
 
@@ -86,8 +86,8 @@ class ShowMyParcelOrders extends Component
         $this->order->refresh();
 
         Notification::make()
-            ->title('Label opnieuw in de wachtrij gezet')
-            ->body('Het label wordt bij de volgende download in het overzicht opnieuw meegedownload.')
+            ->title(__('Label opnieuw in de wachtrij gezet'))
+            ->body(__('Het label wordt bij de volgende download in het overzicht opnieuw meegedownload.'))
             ->success()
             ->send();
     }
@@ -106,7 +106,7 @@ class ShowMyParcelOrders extends Component
             $this->closeDeleteModal();
 
             Notification::make()
-                ->title('MyParcel order niet gevonden')
+                ->title(__('MyParcel order niet gevonden'))
                 ->danger()
                 ->send();
 
@@ -128,8 +128,8 @@ class ShowMyParcelOrders extends Component
         $this->closeDeleteModal();
 
         Notification::make()
-            ->title('MyParcel label verwijderd')
-            ->body('De gekoppelde track & trace is ook verwijderd.')
+            ->title(__('MyParcel label verwijderd'))
+            ->body(__('De gekoppelde track & trace is ook verwijderd.'))
             ->success()
             ->send();
     }
@@ -148,8 +148,8 @@ class ShowMyParcelOrders extends Component
 
         if (! $myParcelOrder || ! $myParcelOrder->label_pdf_path) {
             Notification::make()
-                ->title('Label niet gevonden')
-                ->body('Er staat geen PDF klaar voor dit label.')
+                ->title(__('Label niet gevonden'))
+                ->body(__('Er staat geen PDF klaar voor dit label.'))
                 ->danger()
                 ->send();
 
@@ -158,8 +158,8 @@ class ShowMyParcelOrders extends Component
 
         if (! Storage::disk('public')->exists($myParcelOrder->label_pdf_path)) {
             Notification::make()
-                ->title('Label-bestand ontbreekt')
-                ->body('Het PDF-bestand is niet meer aanwezig op de server. Maak het label opnieuw aan.')
+                ->title(__('Label-bestand ontbreekt'))
+                ->body(__('Het PDF-bestand is niet meer aanwezig op de server. Maak het label opnieuw aan.'))
                 ->danger()
                 ->send();
 

@@ -86,7 +86,7 @@ class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasAction
                         'amount' => TextInput::make($extraOption['name'])
                             ->label($extraOption['label'])
                             ->numeric()
-                            ->prefix(__('€')),
+                            ->prefix('€'),
                         default => Toggle::make($extraOption['name'])
                             ->label($extraOption['label']),
                     };

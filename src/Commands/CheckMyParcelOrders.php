@@ -44,10 +44,15 @@ class CheckMyParcelOrders extends Command
             // bestelling de deur uit is, en een retourlabel dat nooit gebruikt
             // wordt blijft eeuwig op concept staan. Retouren hebben hun eigen
             // retour_status. Zelfde afbakening als MyParcel::labelsToPrint().
-            $shipments = $order->myParcelOrders()
-                ->whereNotNull('shipment_id')
-                ->where('is_return', false)
-                ->get();
+            //
+            // Na een terugzet van afgehandeld naar open tellen alleen labels
+            // van na die terugzet mee: de oude pakketten zijn al bezorgd en
+            // zouden de bestelling anders meteen weer afhandelen.
+            $shipments = $order->sinceFulfillmentReopened(
+                $order->myParcelOrders()
+                    ->whereNotNull('shipment_id')
+                    ->where('is_return', false)
+            )->get();
 
             // Beide beginnen op waar en worden onwaar zodra een zending
             // achterblijft. Ze stonden op onwaar en werden waar zodra er een

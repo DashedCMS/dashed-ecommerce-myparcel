@@ -13,6 +13,7 @@ use Filament\Actions\Contracts\HasActions;
 use Filament\Schemas\Contracts\HasSchemas;
 use Dashed\DashedCore\Models\Customsetting;
 use Dashed\DashedEcommerceCore\Models\Order;
+use Dashed\DashedEcommerceCore\Classes\Orders;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierPostNL;
@@ -92,6 +93,13 @@ class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasAction
                     };
                 }
 
+                // Optioneel: direct na het aanmaken de bestelling doorzetten
+                // (bv. naar Ingepakt) — scheelt een losse statuswijziging.
+                $fields[] = Select::make('set_fulfillment_status')
+                    ->label(__('Status na aanmaken (optioneel)'))
+                    ->options(Orders::getFulfillmentStatusses())
+                    ->placeholder(__('Niet wijzigen'));
+
                 return $fields;
             })
             ->action(function ($data) {
@@ -135,6 +143,10 @@ class ShowPushToMyParcelOrder extends Component implements HasSchemas, HasAction
                         ->send();
 
                     return null;
+                }
+
+                if (! empty($data['set_fulfillment_status'])) {
+                    $this->order->changeFulfillmentStatus($data['set_fulfillment_status']);
                 }
 
                 Notification::make()

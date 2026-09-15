@@ -80,7 +80,7 @@ class CreateMyParcelReturnLabelListener implements ReturnLabelProvider, ShouldQu
 
     public function handle(OrderReturnApprovedEvent $event): void
     {
-        if (! $event->notifyCustomer) {
+        if (! ($event->notifyCustomer ?? true)) {
             return;
         }
 

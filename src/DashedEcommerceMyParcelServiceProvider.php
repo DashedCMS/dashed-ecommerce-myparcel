@@ -93,6 +93,7 @@ MARKDOWN,
 
         $package
             ->name('dashed-ecommerce-myparcel')
+            ->hasTranslations()
             ->hasRoutes([
                 'MyParcelRoutes',
             ])

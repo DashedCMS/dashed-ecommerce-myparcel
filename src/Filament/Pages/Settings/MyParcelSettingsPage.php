@@ -22,6 +22,7 @@ use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
 
 class MyParcelSettingsPage extends Page
 {
+    use \Dashed\DashedCore\Filament\Concerns\TranslatesPageLabels;
     use HasSettingsPermission;
 
     protected static bool $shouldRegisterNavigation = false;

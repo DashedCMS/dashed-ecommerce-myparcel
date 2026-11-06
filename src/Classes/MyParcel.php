@@ -265,12 +265,46 @@ class MyParcel
      * Snelle controle voor de scheduler: zonder werk start er geen eigen
      * artisan-proces. Lukt de query niet, dan draait het commando gewoon.
      */
+    public static function hasOpenShipments(): bool
+    {
+        return rescue(fn () => self::openShipmentsQuery()->exists(), true, false);
+    }
+
+    /** Wezen slaat de sync toch over; zonder bestelling houden ze alleen plek bezet. */
+    private static function openShipmentsQuery()
+    {
+        return MyParcelOrder::query()
+            ->whereNotNull('shipment_id')
+            ->where(function ($q): void {
+                $q->whereNull('status')->orWhereNotIn('status', ['delivered', 'cancelled', 'returned']);
+            })
+            ->whereHas('order');
+    }
+
+    /**
+     * Open bestellingen met een echte heenzending. Of die zending van na een
+     * heropening is, beoordeelt dashed:check-my-parcel-orders per bestelling.
+     */
+    public static function ordersToCheckQuery()
+    {
+        return Order::thisSite()
+            ->isPaid()
+            ->where('fulfillment_status', '!=', 'handled')
+            ->whereHas('myParcelOrders', fn ($query) => $query->whereNotNull('shipment_id')->where('is_return', false));
+    }
+
+    public static function hasOrdersToCheck(): bool
+    {
+        return rescue(fn () => self::ordersToCheckQuery()->exists(), true, false);
+    }
+
     public static function hasConceptsToCreate(): bool
     {
         return rescue(
             fn () => MyParcelOrder::where('label_printed', 0)
                 ->whereNull('shipment_id')
                 ->whereNull('error')
+                ->whereHas('order')
                 ->exists(),
             true,
             false,
@@ -295,7 +329,9 @@ class MyParcel
         $failures = [];
 
         foreach ($myParcelOrders as $myParcelOrder) {
-            if ($myParcelOrder->order->site_id !== $siteId) {
+            // Een zachtverwijderde bestelling geeft null: sla die rij over, anders
+            // breekt een enkele wees elke run af.
+            if ($myParcelOrder->order?->site_id !== $siteId) {
                 continue;
             }
 
@@ -793,11 +829,12 @@ class MyParcel
     public static function syncShipmentStatuses(): int
     {
         $updated = 0;
-        $orders = MyParcelOrder::query()
-            ->whereNotNull('shipment_id')
-            ->where(function ($q): void {
-                $q->whereNull('status')->orWhereNotIn('status', ['delivered', 'cancelled', 'returned']);
-            })
+        // Zelfde volgorde als Veloyd. Er is geen kolom voor de laatste controle:
+        // status_updated_at verschuift alleen bij een wijziging.
+        $orders = self::openShipmentsQuery()
+            ->orderByRaw('status_updated_at IS NULL DESC')
+            ->orderBy('status_updated_at')
+            ->orderBy('id')
             ->limit(200)->get();
 
         foreach ($orders as $mp) {

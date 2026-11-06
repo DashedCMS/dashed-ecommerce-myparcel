@@ -3,7 +3,6 @@
 namespace Dashed\DashedEcommerceMyParcel\Commands;
 
 use Illuminate\Console\Command;
-use Dashed\DashedEcommerceCore\Models\Order;
 use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
 
 class CheckMyParcelOrders extends Command
@@ -39,7 +38,7 @@ class CheckMyParcelOrders extends Command
      */
     public function handle()
     {
-        foreach (Order::thisSite()->isPaid()->where('fulfillment_status', '!=', 'handled')->get() as $order) {
+        foreach (MyParcel::ordersToCheckQuery()->get() as $order) {
             // Retourlabels tellen niet mee: die zeggen niets over of de
             // bestelling de deur uit is, en een retourlabel dat nooit gebruikt
             // wordt blijft eeuwig op concept staan. Retouren hebben hun eigen

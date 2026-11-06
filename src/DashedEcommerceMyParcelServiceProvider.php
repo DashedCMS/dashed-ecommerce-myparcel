@@ -40,8 +40,14 @@ class DashedEcommerceMyParcelServiceProvider extends PackageServiceProvider
                 ->everyMinute()
                 ->when(fn () => \Dashed\DashedEcommerceMyParcel\Classes\MyParcel::hasConceptsToCreate())
                 ->withoutOverlapping();
-            $schedule->command(CheckMyParcelOrders::class)->everyFifteenMinutes()->withoutOverlapping();
-            $schedule->command(\Dashed\DashedEcommerceMyParcel\Commands\SyncMyParcelStatuses::class)->hourly()->withoutOverlapping();
+            $schedule->command(CheckMyParcelOrders::class)
+                ->everyFifteenMinutes()
+                ->when(fn () => \Dashed\DashedEcommerceMyParcel\Classes\MyParcel::hasOrdersToCheck())
+                ->withoutOverlapping();
+            $schedule->command(\Dashed\DashedEcommerceMyParcel\Commands\SyncMyParcelStatuses::class)
+                ->hourly()
+                ->when(fn () => \Dashed\DashedEcommerceMyParcel\Classes\MyParcel::hasOpenShipments())
+                ->withoutOverlapping();
         });
 
         cms()->registerSettingsDocs(

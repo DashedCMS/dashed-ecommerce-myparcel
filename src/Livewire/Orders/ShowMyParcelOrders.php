@@ -6,6 +6,7 @@ use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Filament\Notifications\Notification;
+use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Dashed\DashedEcommerceCore\Models\OrderTrackAndTrace;
 use Dashed\DashedEcommerceMyParcel\Jobs\CreateMyParcelConceptOrdersJob;
@@ -57,6 +58,12 @@ class ShowMyParcelOrders extends Component
             $myParcelOrder->error = null;
             $myParcelOrder->save();
 
+            MyParcel::logLabelEvent(
+                $myParcelOrder,
+                'order.label.requeued',
+                'MyParcel-zending opnieuw in de wachtrij gezet om aan te maken (' . MyParcel::labelSummary($myParcelOrder) . ').'
+            );
+
             CreateMyParcelConceptOrdersJob::dispatch()->onQueue('ecommerce');
 
             $this->order->refresh();
@@ -82,6 +89,12 @@ class ShowMyParcelOrders extends Component
 
         $myParcelOrder->label_printed = false;
         $myParcelOrder->save();
+
+        MyParcel::logLabelEvent(
+            $myParcelOrder,
+            'order.label.requeued',
+            'MyParcel-label opnieuw klaargezet voor de volgende download (' . MyParcel::labelSummary($myParcelOrder) . ').'
+        );
 
         $this->order->refresh();
 
@@ -113,6 +126,9 @@ class ShowMyParcelOrders extends Component
             return;
         }
 
+        $summary = MyParcel::labelSummary($myParcelOrder);
+        $isReturn = (bool) $myParcelOrder->is_return;
+
         DB::transaction(function () use ($myParcelOrder) {
             if (! empty($myParcelOrder->track_and_trace[0])) {
                 OrderTrackAndTrace::where('order_id', $this->order->id)
@@ -122,6 +138,12 @@ class ShowMyParcelOrders extends Component
 
             $myParcelOrder->delete();
         });
+
+        MyParcel::logLabelEvent(
+            $myParcelOrder,
+            'order.label.deleted',
+            ($isReturn ? 'MyParcel-retourlabel' : 'MyParcel-label') . ' verwijderd (' . $summary . '), de gekoppelde track & trace is ook verwijderd.'
+        );
 
         $this->order->refresh();
 
@@ -170,6 +192,12 @@ class ShowMyParcelOrders extends Component
             $myParcelOrder->label_printed = true;
             $myParcelOrder->save();
         }
+
+        MyParcel::logLabelEvent(
+            $myParcelOrder,
+            'order.label.downloaded',
+            ($myParcelOrder->is_return ? 'MyParcel-retourlabel' : 'MyParcel-label') . ' gedownload (' . MyParcel::labelSummary($myParcelOrder) . ').'
+        );
 
         $this->order->refresh();
 

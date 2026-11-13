@@ -5,6 +5,7 @@ namespace Dashed\DashedEcommerceMyParcel\Jobs;
 use App\Models\User;
 use Filament\Actions\Action;
 use Illuminate\Bus\Queueable;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
 use Filament\Notifications\Notification;
@@ -39,7 +40,21 @@ class CreateShippingLabelsJob implements ShouldQueue
      */
     public function handle(): void
     {
-        $response = $this->generateLabels();
+        // Zet de gebruiker die op "Download MyParcel labels" klikte tijdelijk
+        // als ingelogd, zodat de orderlogs per label op zijn naam komen. Een
+        // queue-worker leeft lang: daarna altijd weer vergeten.
+        $previousUser = Auth::user();
+        Auth::setUser($this->user);
+
+        try {
+            $response = $this->generateLabels();
+        } finally {
+            if ($previousUser) {
+                Auth::setUser($previousUser);
+            } elseif (method_exists(Auth::guard(), 'forgetUser')) {
+                Auth::guard()->forgetUser();
+            }
+        }
 
         if (($response['processed'] ?? 0) > 0) {
             Notification::make()

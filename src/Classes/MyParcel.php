@@ -388,6 +388,14 @@ class MyParcel
                     $myParcelOrder->save();
                 }
 
+                if ($myParcelOrder->shipment_id) {
+                    self::logLabelEvent(
+                        $myParcelOrder,
+                        'order.label.created',
+                        'MyParcel-zending aangemaakt (' . self::labelSummary($myParcelOrder) . '), het label wordt opgehaald bij het downloaden.'
+                    );
+                }
+
                 $orders[] = $myParcelOrder->order;
             } catch (Throwable $e) {
                 $myParcelOrder->error = $e->getMessage();
@@ -494,6 +502,12 @@ class MyParcel
                 $myParcelOrder->label_printed = 1;
                 $myParcelOrder->save();
                 $printed++;
+
+                self::logLabelEvent(
+                    $myParcelOrder,
+                    'order.label.downloaded',
+                    'MyParcel-label gedownload via "Download MyParcel labels" (' . self::labelSummary($myParcelOrder) . ').'
+                );
 
                 $myParcelOrder->order->addTrackAndTrace('my-parcel', $shipment->getCarrierName(), $shipment->getBarcode(), $shipment->getBarcodeUrl($shipment->getBarcode(), $myParcelOrder->order->zip_code, $myParcelOrder->order->countryIsoCode));
             }
@@ -615,6 +629,12 @@ class MyParcel
         $myParcelOrder->label_pdf_path = $filePath;
         $myParcelOrder->save();
 
+        self::logLabelEvent(
+            $myParcelOrder,
+            'order.label.created',
+            'MyParcel-label aangemaakt (' . self::labelSummary($myParcelOrder) . ').'
+        );
+
         return [
             'filePath' => $filePath,
             'pdf' => $pdf,
@@ -714,11 +734,71 @@ class MyParcel
         $myParcelOrder->label_pdf_path = $filePath;
         $myParcelOrder->save();
 
+        self::logLabelEvent(
+            $myParcelOrder,
+            'order.return-label.created',
+            'MyParcel-retourlabel aangemaakt (' . self::labelSummary($myParcelOrder) . ').'
+        );
+
         return [
             'filePath' => $filePath,
             'pdf' => $pdf,
             'myParcelOrder' => $myParcelOrder,
         ];
+    }
+
+    /**
+     * Korte omschrijving van een MyParcel-label voor het orderlogboek:
+     * vervoerder, pakkettype en (indien bekend) track & trace.
+     */
+    public static function labelSummary(MyParcelOrder $myParcelOrder): string
+    {
+        $carrier = $myParcelOrder->carrier
+            ? (self::getCarriers()[$myParcelOrder->carrier] ?? class_basename((string) $myParcelOrder->carrier))
+            : 'MyParcel';
+        $parts = [$carrier];
+
+        $packageType = self::getPackageTypes()[(int) $myParcelOrder->package_type] ?? null;
+        if ($packageType) {
+            $parts[] = $packageType;
+        }
+
+        $trackTrace = self::trackTraceCode($myParcelOrder);
+        $parts[] = $trackTrace ? 'T&T ' . $trackTrace : 'nog geen T&T';
+
+        return implode(', ', $parts);
+    }
+
+    public static function trackTraceCode(MyParcelOrder $myParcelOrder): ?string
+    {
+        $first = $myParcelOrder->track_and_trace[0] ?? null;
+
+        if (! is_array($first) || $first === []) {
+            return null;
+        }
+
+        $code = array_key_first($first);
+
+        return $code === null || $code === '' ? null : (string) $code;
+    }
+
+    /**
+     * Schrijft een label-gebeurtenis in het orderlogboek. Zonder ingelogde
+     * gebruiker (cron, queue) wordt het een systeemregel. Een fout bij het
+     * loggen mag het aanmaken of downloaden van een label nooit breken.
+     */
+    public static function logLabelEvent(MyParcelOrder $myParcelOrder, string $tag, string $note): void
+    {
+        rescue(
+            fn () => OrderLog::createLog(
+                orderId: (int) $myParcelOrder->order_id,
+                tag: $tag,
+                note: $note,
+                isSystem: auth()->check() ? null : true,
+            ),
+            null,
+            true,
+        );
     }
 
     public static function getLabelsFromShipments(array $shipmentIds = [])

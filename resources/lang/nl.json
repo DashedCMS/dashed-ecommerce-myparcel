@@ -53,5 +53,8 @@
     "Verzendlabel aangemaakt": "Verzendlabel aangemaakt",
     "Verzendlabel aanmaken": "Verzendlabel aanmaken",
     "Verzend type": "Verzend type",
-    "Voor bestellingen naar :regio": "Voor bestellingen naar :regio"
+    "Voor bestellingen naar :regio": "Voor bestellingen naar :regio",
+    "MyParcel-labels aanmaken": "MyParcel-labels aanmaken",
+    ":aantal labels aangemaakt.": ":aantal labels aangemaakt.",
+    "Er stonden geen labels klaar.": "Er stonden geen labels klaar."
 }

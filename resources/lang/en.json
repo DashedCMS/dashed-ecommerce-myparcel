@@ -53,5 +53,8 @@
     "Verzendlabel aangemaakt": "Shipping label created",
     "Verzendlabel aanmaken": "Create shipping label",
     "Verzend type": "Shipping type",
-    "Voor bestellingen naar :regio": "For orders to :regio"
+    "Voor bestellingen naar :regio": "For orders to :regio",
+    "MyParcel-labels aanmaken": "Creating MyParcel labels",
+    ":aantal labels aangemaakt.": ":aantal labels created.",
+    "Er stonden geen labels klaar.": "There were no labels waiting."
 }

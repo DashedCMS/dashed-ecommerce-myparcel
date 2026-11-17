@@ -590,7 +590,7 @@ class MyParcel
     {
         rescue(function () use ($myParcelOrder, $e): void {
             $myParcelOrder->error = $e->getMessage();
-            $myParcelOrder->saveQuietly();
+            $myParcelOrder->save();
         }, null, false);
     }
 

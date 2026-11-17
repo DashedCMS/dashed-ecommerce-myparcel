@@ -4,6 +4,7 @@ namespace Dashed\DashedEcommerceMyParcel\Classes;
 
 use Exception;
 use Throwable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Dashed\DashedCore\Classes\Mails;
 use Dashed\DashedCore\Classes\Sites;
@@ -13,8 +14,6 @@ use MyParcelNL\Sdk\src\Model\Recipient;
 use Dashed\DashedCore\Models\Customsetting;
 use Dashed\DashedEcommerceCore\Models\Order;
 use Dashed\DashedEcommerceCore\Models\OrderLog;
-use Dashed\DashedEcommerceCore\Models\OrderTrackAndTrace;
-use Illuminate\Support\Facades\DB;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierDPD;
 use MyParcelNL\Sdk\src\Helper\MyParcelCollection;
 use MyParcelNL\Sdk\src\Factory\ConsignmentFactory;
@@ -23,6 +22,7 @@ use MyParcelNL\Sdk\src\Model\Carrier\CarrierPostNL;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierDHLForYou;
 use Dashed\DashedEcommerceMyParcel\Models\MyParcelOrder;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierDHLEuroplus;
+use Dashed\DashedEcommerceCore\Models\OrderTrackAndTrace;
 
 class MyParcel
 {

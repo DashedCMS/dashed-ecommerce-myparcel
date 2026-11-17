@@ -626,6 +626,10 @@ class MyParcel
      */
     public static function replaceLabel(MyParcelOrder $old, array $overrides = []): array
     {
+        if ($old->is_return) {
+            throw new \InvalidArgumentException('replaceLabel only supports outbound labels');
+        }
+
         $order = $old->order;
 
         $defaults = [

@@ -13,6 +13,8 @@ use MyParcelNL\Sdk\src\Model\Recipient;
 use Dashed\DashedCore\Models\Customsetting;
 use Dashed\DashedEcommerceCore\Models\Order;
 use Dashed\DashedEcommerceCore\Models\OrderLog;
+use Dashed\DashedEcommerceCore\Models\OrderTrackAndTrace;
+use Illuminate\Support\Facades\DB;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierDPD;
 use MyParcelNL\Sdk\src\Helper\MyParcelCollection;
 use MyParcelNL\Sdk\src\Factory\ConsignmentFactory;
@@ -183,14 +185,20 @@ class MyParcel
             return null;
         }
 
-        $apiKey = self::apiKey($myParcelOrder->order->site_id, encoded: false);
+        try {
+            $apiKey = self::apiKey($myParcelOrder->order->site_id, encoded: false);
 
-        $consignments = (new MyParcelCollection())
-            ->setUserAgents(['DashedCMS', '2.0']);
-        $consignments = $consignments->addConsignmentByConsignmentIds([(int) $myParcelOrder->shipment_id], $apiKey);
-        $response = $consignments->setPdfOfLabels('a6');
+            $consignments = (new MyParcelCollection())
+                ->setUserAgents(['DashedCMS', '2.0']);
+            $consignments = $consignments->addConsignmentByConsignmentIds([(int) $myParcelOrder->shipment_id], $apiKey);
+            $response = $consignments->setPdfOfLabels('a6');
 
-        $pdf = $response->getLabelPdf();
+            $pdf = $response->getLabelPdf();
+        } catch (Throwable $e) {
+            self::rememberLabelError($myParcelOrder, $e);
+
+            throw $e;
+        }
 
         $filePath = 'dashed/orders/my-parcel/label-'
             . ($myParcelOrder->order->invoice_id ?: $myParcelOrder->order_id)
@@ -198,6 +206,7 @@ class MyParcel
         Storage::disk('public')->put($filePath, $pdf);
 
         $myParcelOrder->label_pdf_path = $filePath;
+        $myParcelOrder->error = null;
         $myParcelOrder->save();
 
         return $filePath;
@@ -564,6 +573,74 @@ class MyParcel
 
     public static function createConceptAndLabelForOrder(MyParcelOrder $myParcelOrder): array
     {
+        try {
+            return self::runCreateConceptAndLabel($myParcelOrder);
+        } catch (Throwable $e) {
+            self::rememberLabelError($myParcelOrder, $e);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Bewaart de ruwe foutmelding van een mislukte label-actie op de MyParcelOrder,
+     * zodat CMS en app de echte oorzaak kunnen tonen. Nooit breken.
+     */
+    protected static function rememberLabelError(MyParcelOrder $myParcelOrder, Throwable $e): void
+    {
+        rescue(function () use ($myParcelOrder, $e): void {
+            $myParcelOrder->error = $e->getMessage();
+            $myParcelOrder->saveQuietly();
+        }, null, false);
+    }
+
+    /**
+     * Verwijdert een MyParcelOrder en de bijbehorende track & trace, en logt dat.
+     */
+    public static function deleteLabelRecord(MyParcelOrder $myParcelOrder): void
+    {
+        $summary = self::labelSummary($myParcelOrder);
+        $isReturn = (bool) $myParcelOrder->is_return;
+
+        DB::transaction(function () use ($myParcelOrder) {
+            if (! empty($myParcelOrder->track_and_trace[0])) {
+                OrderTrackAndTrace::where('order_id', $myParcelOrder->order_id)
+                    ->where('code', array_key_first($myParcelOrder->track_and_trace[0]))
+                    ->delete();
+            }
+
+            $myParcelOrder->delete();
+        });
+
+        self::logLabelEvent(
+            $myParcelOrder,
+            'order.label.deleted',
+            ($isReturn ? 'MyParcel-retourlabel' : 'MyParcel-label') . ' verwijderd (' . $summary . '), de gekoppelde track & trace is ook verwijderd.'
+        );
+    }
+
+    /**
+     * Vervangt een onbruikbaar label: verwijdert het oude record (incl. T&T) en
+     * maakt via createLabelForOrder een nieuw label met dezelfde carrier,
+     * pakkettype, verzendtype en opties. Gooit door als het aanmaken faalt.
+     */
+    public static function replaceLabel(MyParcelOrder $old, array $overrides = []): array
+    {
+        $order = $old->order;
+
+        $defaults = [
+            'carrier' => $old->carrier,
+            'package_type' => $old->package_type,
+            'delivery_type' => $old->delivery_type,
+        ] + (array) ($old->options ?? []);
+
+        self::deleteLabelRecord($old);
+
+        return self::createLabelForOrder($order->fresh(), $overrides + $defaults);
+    }
+
+    protected static function runCreateConceptAndLabel(MyParcelOrder $myParcelOrder): array
+    {
         $apiKey = self::apiKey($myParcelOrder->order->site_id, encoded: false);
 
         if (! $myParcelOrder->carrier) {
@@ -627,6 +704,7 @@ class MyParcel
         Storage::disk('public')->put($filePath, $pdf);
 
         $myParcelOrder->label_pdf_path = $filePath;
+        $myParcelOrder->error = null;
         $myParcelOrder->save();
 
         self::logLabelEvent(

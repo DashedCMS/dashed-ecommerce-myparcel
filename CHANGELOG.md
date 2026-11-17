@@ -2,6 +2,16 @@
 
 All notable changes to `dashed-ecommerce-myparcel` will be documented in this file.
 
+## Unreleased
+
+### Added
+- Een mislukte labelaanvraag bij MyParcel slaat nu de echte foutmelding van de vervoerder op bij de zending, zodat die in het CMS en de app zichtbaar is. Na een gelukt label wordt de fout weer gewist.
+- `MyParcel::replaceLabel()` vervangt een onbruikbaar label: het oude record en de track & trace worden verwijderd en er wordt met dezelfde instellingen een nieuw label aangemaakt.
+- `MyParcel::deleteLabelRecord()` is nu de gedeelde plek voor het verwijderen van een label (gebruikt door het ordersscherm).
+
+### Changed
+- De foutkolom van MyParcel-zendingen is nu een tekstveld, zodat lange foutmeldingen passen.
+
 ## v4.17.0 - 2026-11-16
 
 ### Changed

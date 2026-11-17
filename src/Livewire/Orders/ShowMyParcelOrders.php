@@ -3,12 +3,10 @@
 namespace Dashed\DashedEcommerceMyParcel\Livewire\Orders;
 
 use Livewire\Component;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Filament\Notifications\Notification;
 use Dashed\DashedEcommerceMyParcel\Classes\MyParcel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Dashed\DashedEcommerceCore\Models\OrderTrackAndTrace;
 use Dashed\DashedEcommerceMyParcel\Jobs\CreateMyParcelConceptOrdersJob;
 
 class ShowMyParcelOrders extends Component
@@ -126,24 +124,7 @@ class ShowMyParcelOrders extends Component
             return;
         }
 
-        $summary = MyParcel::labelSummary($myParcelOrder);
-        $isReturn = (bool) $myParcelOrder->is_return;
-
-        DB::transaction(function () use ($myParcelOrder) {
-            if (! empty($myParcelOrder->track_and_trace[0])) {
-                OrderTrackAndTrace::where('order_id', $this->order->id)
-                    ->where('code', array_key_first($myParcelOrder->track_and_trace[0]))
-                    ->delete();
-            }
-
-            $myParcelOrder->delete();
-        });
-
-        MyParcel::logLabelEvent(
-            $myParcelOrder,
-            'order.label.deleted',
-            ($isReturn ? 'MyParcel-retourlabel' : 'MyParcel-label') . ' verwijderd (' . $summary . '), de gekoppelde track & trace is ook verwijderd.'
-        );
+        MyParcel::deleteLabelRecord($myParcelOrder);
 
         $this->order->refresh();
 

@@ -62,7 +62,7 @@ class CheckMyParcelOrders extends Command
             $allDelivered = true;
 
             foreach ($shipments as $myParcelOrder) {
-                $shipment = MyParcel::getShipment($myParcelOrder->shipment_id, $order->site_id);
+                $shipment = MyParcel::getShipment($myParcelOrder->shipment_id, $order->site_id, $order->id);
                 $statusCode = $shipment['data']['shipments'][0]['status'] ?? 0;
 
                 if (in_array($statusCode, [7, 8, 9, 10, 11, 19])) {

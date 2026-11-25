@@ -17,6 +17,7 @@ use Dashed\DashedEcommerceCore\Models\OrderLog;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierDPD;
 use MyParcelNL\Sdk\src\Helper\MyParcelCollection;
 use MyParcelNL\Sdk\src\Factory\ConsignmentFactory;
+use MyParcelNL\Sdk\src\Services\CollectionEncode;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierBpost;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierPostNL;
 use MyParcelNL\Sdk\src\Model\Carrier\CarrierDHLForYou;
@@ -191,7 +192,14 @@ class MyParcel
             $consignments = (new MyParcelCollection())
                 ->setUserAgents(['DashedCMS', '2.0']);
             $consignments = $consignments->addConsignmentByConsignmentIds([(int) $myParcelOrder->shipment_id], $apiKey);
-            $response = $consignments->setPdfOfLabels('a6');
+            $response = self::logged(
+                'fetch_label',
+                $myParcelOrder->order_id,
+                'GET',
+                '/shipment_labels/' . $myParcelOrder->shipment_id,
+                ['shipment_ids' => [(int) $myParcelOrder->shipment_id], 'format' => 'a6'],
+                fn () => $consignments->setPdfOfLabels('a6'),
+            );
 
             $pdf = $response->getLabelPdf();
         } catch (Throwable $e) {
@@ -256,7 +264,7 @@ class MyParcel
             $siteId = Sites::getActive();
         }
 
-        $response = Http::withToken(self::apiKey($siteId))
+        $response = self::withLog(Http::withToken(self::apiKey($siteId)), 'check_connection')
             ->get(self::baseUrl())
             ->json();
         if (($response['status'] ?? false) == 'OK') {
@@ -388,8 +396,15 @@ class MyParcel
 
                 $consignments = (new MyParcelCollection())
                     ->setUserAgents(['DashedCMS', '2.0'])
-                    ->addConsignment($consigment)
-                    ->createConcepts();
+                    ->addConsignment($consigment);
+                $consignments = self::logged(
+                    'create_shipment',
+                    $myParcelOrder->order_id,
+                    'POST',
+                    '/shipments',
+                    self::payloadForLog($consignments),
+                    fn () => $consignments->createConcepts(),
+                );
 
                 foreach ($consignments->getConsignments() as $shipment) {
                     $myParcelOrder->shipment_id = $shipment->getConsignmentId();
@@ -499,7 +514,14 @@ class MyParcel
             }
 
             $consignments = $consignments->addConsignmentByConsignmentIds($shipmentIds, $apiKey);
-            $response = $consignments->setPdfOfLabels('a6');
+            $response = self::logged(
+                'fetch_labels_batch',
+                count($myParcelOrders) === 1 ? $myParcelOrders->first()->order_id : null,
+                'GET',
+                '/shipment_labels/' . implode(';', $shipmentIds),
+                ['shipment_ids' => $shipmentIds, 'order_ids' => $myParcelOrders->pluck('order_id')->all(), 'format' => 'a6'],
+                fn () => $consignments->setPdfOfLabels('a6'),
+            );
 
             foreach ($response->getConsignments() as $shipment) {
                 $myParcelOrder = MyParcelOrder::find(str($shipment->getReferenceIdentifier())->explode('-')->first());
@@ -669,8 +691,15 @@ class MyParcel
 
         $consignments = (new MyParcelCollection())
             ->setUserAgents(['DashedCMS', '2.0'])
-            ->addConsignment($consigment)
-            ->setPdfOfLabels('a6');
+            ->addConsignment($consigment);
+        $consignments = self::logged(
+            'create_label',
+            $myParcelOrder->order_id,
+            'POST',
+            '/shipments',
+            self::payloadForLog($consignments),
+            fn () => $consignments->setPdfOfLabels('a6'),
+        );
 
         foreach ($consignments->getConsignments() as $shipment) {
             $myParcelOrder->shipment_id = $shipment->getConsignmentId();
@@ -784,10 +813,21 @@ class MyParcel
         // gerenderde label; daarom zetten we recipient = winkel, sender = klant
         // en draaien we de richting expliciet om. Vereist de 'custom sender'
         // permissie op het MyParcel account.
-        $consignments->createConcepts();
-        $consignments->setLabelFormat('a6');
-        $consignments->setLatestData();
-        $consignments->setPdfOfLabels('a6');
+        self::logged(
+            'create_return_label',
+            $myParcelOrder->order_id,
+            'POST',
+            '/shipments',
+            self::payloadForLog($consignments),
+            function () use ($consignments) {
+                $consignments->createConcepts();
+                $consignments->setLabelFormat('a6');
+                $consignments->setLatestData();
+                $consignments->setPdfOfLabels('a6');
+
+                return $consignments;
+            },
+        );
 
         foreach ($consignments->getConsignments() as $shipment) {
             $myParcelOrder->shipment_id = $shipment->getConsignmentId();
@@ -885,10 +925,10 @@ class MyParcel
 
     public static function getLabelsFromShipments(array $shipmentIds = [])
     {
-        $response = Http::withHeaders([
+        $response = self::withLog(Http::withHeaders([
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
-        ])
+        ]), 'fetch_labels_batch')
             ->post('https://api.myparcel.com/api/v2/label?api_token=' . Customsetting::get('my_parcel_api_key'), [
                 'shipments' => $shipmentIds,
             ])
@@ -897,13 +937,13 @@ class MyParcel
         return $response;
     }
 
-    public static function getShipment(int|string $shipmentId, string $siteId)
+    public static function getShipment(int|string $shipmentId, string $siteId, ?int $orderId = null)
     {
-        $response = Http::withHeaders([
+        $response = self::withLog(Http::withHeaders([
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
             'User-Agent' => self::getUserAgent(),
-        ])
+        ]), 'status', $orderId)
             ->withToken(self::apiKey($siteId))
             ->get(self::baseUrl() . '/shipments', [
                 'id' => $shipmentId,
@@ -911,6 +951,84 @@ class MyParcel
             ->json();
 
         return $response;
+    }
+
+    /**
+     * Carrier-logboek (ec-core) for the Laravel Http calls: every request and
+     * response, headers (API key) excluded.
+     */
+    protected static function withLog(\Illuminate\Http\Client\PendingRequest $http, string $action, ?int $orderId = null): \Illuminate\Http\Client\PendingRequest
+    {
+        if (! class_exists(\Dashed\DashedEcommerceCore\Services\Shipping\CarrierLogs\CarrierApiLogger::class)) {
+            return $http;
+        }
+
+        return $http->withMiddleware(\Dashed\DashedEcommerceCore\Services\Shipping\CarrierLogs\CarrierApiLogger::middleware('myparcel', $action, $orderId));
+    }
+
+    /**
+     * Carrier-logboek for calls through the MyParcel SDK. The SDK does its own
+     * curl without a hook, so we log the payload we hand it and the result it
+     * gives back (consignment ids, barcodes, status), or the SDK's exception
+     * message with status null. One SDK call can be several HTTP requests.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $call
+     * @return T
+     */
+    protected static function logged(string $action, ?int $orderId, string $method, string $endpoint, mixed $payload, callable $call): mixed
+    {
+        if (! class_exists(\Dashed\DashedEcommerceCore\Services\Shipping\CarrierLogs\CarrierApiLogger::class)) {
+            return $call();
+        }
+
+        return \Dashed\DashedEcommerceCore\Services\Shipping\CarrierLogs\CarrierApiLogger::track(
+            'myparcel',
+            $action,
+            $orderId,
+            $method,
+            self::baseUrl() . $endpoint,
+            $payload,
+            $call,
+            fn ($result) => self::resultForLog($result),
+        );
+    }
+
+    /** The shipments body the SDK will POST, as MyParcel receives it. */
+    protected static function payloadForLog(MyParcelCollection $consignments): mixed
+    {
+        return rescue(
+            fn () => json_decode((new CollectionEncode($consignments))->encode('shipments'), true),
+            null,
+            false,
+        );
+    }
+
+    protected static function resultForLog(mixed $result): array
+    {
+        if (! $result instanceof MyParcelCollection) {
+            return ['result' => is_object($result) ? get_class($result) : $result];
+        }
+
+        $shipments = [];
+        foreach ($result->getConsignments() as $consignment) {
+            $shipments[] = [
+                'id' => rescue(fn () => $consignment->getConsignmentId(), null, false),
+                'reference_identifier' => rescue(fn () => $consignment->getReferenceIdentifier(), null, false),
+                'barcode' => rescue(fn () => $consignment->getBarcode(), null, false),
+                'status' => rescue(fn () => $consignment->getStatus(), null, false),
+                'carrier' => rescue(fn () => $consignment->getCarrierName(), null, false),
+            ];
+        }
+
+        $pdf = rescue(fn () => $result->getLabelPdf(), null, false);
+
+        return array_filter([
+            'shipments' => $shipments,
+            'label_pdf_bytes' => is_string($pdf) ? strlen($pdf) : null,
+            'label_link' => rescue(fn () => $result->getLinkOfLabels(), null, false),
+        ], fn ($value) => $value !== null);
     }
 
     public static function getPackageTypes(): array
@@ -1038,7 +1156,7 @@ class MyParcel
             if (! $mp->order) {
                 return 0;
             }
-            $resp = self::getShipment($mp->shipment_id, $mp->order->site_id);
+            $resp = self::getShipment($mp->shipment_id, $mp->order->site_id, $mp->order_id);
             $code = $resp['data']['shipments'][0]['status'] ?? null;
             if ($code === null) {
                 return 0;

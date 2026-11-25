@@ -2,6 +2,11 @@
 
 All notable changes to `dashed-ecommerce-myparcel` will be documented in this file.
 
+## v4.19.0 - 2026-11-25
+
+### Added
+- MyParcel-calls via de Http-client (check_connection, status, fetch_labels_batch) en via de SDK (create_shipment, create_label, create_return_label, fetch_label, fetch_labels_batch) worden gelogd in het carrier-logboek van ec-core (vereist ec-core ^4.228 voor het logboek). Bij SDK-calls één regel per aanroep, zonder HTTP-statusnummer.
+
 ## v4.18.0 - 2026-11-17
 
 ### Added
